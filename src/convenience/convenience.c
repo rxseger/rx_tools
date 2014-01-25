@@ -222,6 +222,8 @@ int verbose_direct_sampling(SoapySDRDevice *dev, int on)
 		fprintf(stderr, "Enabled direct sampling mode, input 1/I.\n");}
 	if (atoi(set_value) == 2) {
 		fprintf(stderr, "Enabled direct sampling mode, input 2/Q.\n");}
+	if (on == 3) {
+		fprintf(stderr, "Enabled no-mod direct sampling mode.\n");}
 	return r;
 }
 

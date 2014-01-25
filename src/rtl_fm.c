@@ -228,6 +228,7 @@ void usage(void)
 		"\t	agc:    same as rtlagc\n"
 		"\t	deemp:  enable de-emphasis filter\n"
 		"\t	direct: enable direct sampling (bypasses tuner, uses rtl2832 xtal)\n"
+		"\t no-mod: enable no-mod direct sampling\n"
 		"\t	offset: enable offset tuning (only e4000 tuner)\n"
 		"\t[-q dc_avg_factor for option rdc (default: 9)]\n"
 		"\tfilename ('-' means stdout)\n"
@@ -1041,7 +1042,7 @@ static void *controller_thread_fn(void *arg)
 	/* set up primary channel */
 	optimal_settings(s->freqs[0], demod.rate_in);
 	if (dongle.direct_sampling) {
-		verbose_direct_sampling(dongle.dev, 1);}
+		verbose_direct_sampling(dongle.dev, dongle.direct_sampling);}
 	if (dongle.offset_tuning) {
 		verbose_offset_tuning(dongle.dev);}
 
@@ -1273,6 +1274,8 @@ int main(int argc, char **argv)
 				demod.deemph = 1;}
 			if (strcmp("direct",  optarg) == 0) {
 				dongle.direct_sampling = 1;}
+			if (strcmp("no-mod",  optarg) == 0) {
+				dongle.direct_sampling = 3;}
 			if (strcmp("offset",  optarg) == 0) {
 				dongle.offset_tuning = 1;}
 			if (strcmp("rtlagc", optarg) == 0 || strcmp("agc", optarg) == 0) {
