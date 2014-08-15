@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			// half of I/Q pair count (double for one each of I and Q)
-			samples_to_read = (uint32_t)atof(optarg) * 2;
+			samples_to_read = (uint32_t)atofs(optarg) * 2;
 			break;
 		case 'S':
 			sync_mode = 1;
