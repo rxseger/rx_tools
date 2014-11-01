@@ -830,12 +830,13 @@ static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 {
 	int i;
 	struct dongle_state *s = ctx;
-	struct demod_state *d = s->demod_target;
+	struct demod_state *d;
 
 	if (do_exit) {
 		return;}
-	if (!ctx) {
+	if (!s) {
 		return;}
+	d  = s->demod_target;
 	if (s->mute) {
 		for (i=0; i<s->mute; i++) {
 			buf[i] = 0;}
