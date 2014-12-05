@@ -1,0 +1,26 @@
+From 03a40c44f502f877f924f971312c26dbdccdfd62 Mon Sep 17 00:00:00 2001
+From: Steve Markgraf <steve@steve-m.de>
+Date: Sat, 8 Feb 2014 14:46:26 +0100
+Subject: [PATCH 1/2] change version to 0.5.3git
+
+Signed-off-by: Steve Markgraf <steve@steve-m.de>
+---
+ CMakeLists.txt |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5a4d9fc..0597600 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -40,7 +40,7 @@ endif()
+ # Set the version information here
+ set(VERSION_INFO_MAJOR_VERSION 0) # increment major on api compatibility changes
+ set(VERSION_INFO_MINOR_VERSION 5) # increment minor on feature-level changes
+-set(VERSION_INFO_PATCH_VERSION 3) # increment patch for bug fixes and docs
++set(VERSION_INFO_PATCH_VERSION git) # increment patch for bug fixes and docs
+ include(Version) # setup version info
+ 
+ ########################################################################
+-- 
+1.7.10.4
+

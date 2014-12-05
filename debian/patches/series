@@ -1,0 +1,4 @@
+0002-lib-only-print-to-stderr-in-tuner_r82xx_set_pll.patch
+0003-lib-handle-events-after-canceling-transfers.patch
+0004-lib-change-default-number-of-transfers-to-15.patch
+0005-rtl_tcp-make-all-global-variables-static.patch

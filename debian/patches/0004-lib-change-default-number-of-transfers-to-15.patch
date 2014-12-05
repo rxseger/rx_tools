@@ -1,0 +1,134 @@
+From 89f73b183f2dac9c0dd75beca4cf2f77f20c4a36 Mon Sep 17 00:00:00 2001
+From: Steve Markgraf <steve@steve-m.de>
+Date: Mon, 10 Feb 2014 23:57:19 +0100
+Subject: [PATCH 4/5] lib: change default number of transfers to 15
+
+So far we had 32 * 256KB which was a bit overkill,
+15 are more than enough.
+
+15 was chosen instead of 16 because at least on Linux
+there seems to be a system-wide limit of 63 transfers
+(when they are 256KB large), so 4 dongles can be used
+on a single machine without lowering the default transfer
+number.
+
+Signed-off-by: Steve Markgraf <steve@steve-m.de>
+---
+ include/rtl-sdr.h |    5 +++--
+ src/librtlsdr.c   |    2 +-
+ src/rtl_fm.c      |    4 +---
+ src/rtl_sdr.c     |    3 +--
+ src/rtl_tcp.c     |    2 +-
+ src/rtl_test.c    |    3 +--
+ 6 files changed, 8 insertions(+), 11 deletions(-)
+
+diff --git a/include/rtl-sdr.h b/include/rtl-sdr.h
+index a07fc60..489e117 100644
+--- a/include/rtl-sdr.h
++++ b/include/rtl-sdr.h
+@@ -351,9 +351,10 @@ RTLSDR_API int rtlsdr_wait_async(rtlsdr_dev_t *dev, rtlsdr_read_async_cb_t cb, v
+  * \param cb callback function to return received samples
+  * \param ctx user specific context to pass via the callback function
+  * \param buf_num optional buffer count, buf_num * buf_len = overall buffer size
+- *		  set to 0 for default buffer count (32)
++ *		  set to 0 for default buffer count (15)
+  * \param buf_len optional buffer length, must be multiple of 512,
+- *		  set to 0 for default buffer length (16 * 32 * 512)
++ *		  should be a multiple of 16384 (URB size), set to 0
++ *		  for default buffer length (16 * 32 * 512)
+  * \return 0 on success
+  */
+ RTLSDR_API int rtlsdr_read_async(rtlsdr_dev_t *dev,
+diff --git a/src/librtlsdr.c b/src/librtlsdr.c
+index 5062827..9a3ebcd 100644
+--- a/src/librtlsdr.c
++++ b/src/librtlsdr.c
+@@ -338,7 +338,7 @@ static rtlsdr_dongle_t known_devices[] = {
+ 	{ 0x1f4d, 0xd803, "PROlectrix DV107669" },
+ };
+ 
+-#define DEFAULT_BUF_NUMBER	32
++#define DEFAULT_BUF_NUMBER	15
+ #define DEFAULT_BUF_LENGTH	(16 * 32 * 512)
+ 
+ #define DEF_RTL_XTAL_FREQ	28800000
+diff --git a/src/rtl_fm.c b/src/rtl_fm.c
+index 9831431..0f7ac38 100644
+--- a/src/rtl_fm.c
++++ b/src/rtl_fm.c
+@@ -76,7 +76,6 @@
+ #include "convenience/convenience.h"
+ 
+ #define DEFAULT_SAMPLE_RATE		24000
+-#define DEFAULT_ASYNC_BUF_NUMBER	32
+ #define DEFAULT_BUF_LENGTH		(1 * 16384)
+ #define MAXIMUM_OVERSAMPLE		16
+ #define MAXIMUM_BUF_LENGTH		(MAXIMUM_OVERSAMPLE * DEFAULT_BUF_LENGTH)
+@@ -807,8 +806,7 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
+ static void *dongle_thread_fn(void *arg)
+ {
+ 	struct dongle_state *s = arg;
+-	rtlsdr_read_async(s->dev, rtlsdr_callback, s,
+-		DEFAULT_ASYNC_BUF_NUMBER, s->buf_len);
++	rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
+ 	return 0;
+ }
+ 
+diff --git a/src/rtl_sdr.c b/src/rtl_sdr.c
+index 0c6a707..e6537ca 100644
+--- a/src/rtl_sdr.c
++++ b/src/rtl_sdr.c
+@@ -35,7 +35,6 @@
+ #include "convenience/convenience.h"
+ 
+ #define DEFAULT_SAMPLE_RATE		2048000
+-#define DEFAULT_ASYNC_BUF_NUMBER	32
+ #define DEFAULT_BUF_LENGTH		(16 * 16384)
+ #define MINIMAL_BUF_LENGTH		512
+ #define MAXIMAL_BUF_LENGTH		(256 * 16384)
+@@ -261,7 +260,7 @@ int main(int argc, char **argv)
+ 	} else {
+ 		fprintf(stderr, "Reading samples in async mode...\n");
+ 		r = rtlsdr_read_async(dev, rtlsdr_callback, (void *)file,
+-				      DEFAULT_ASYNC_BUF_NUMBER, out_block_size);
++				      0, out_block_size);
+ 	}
+ 
+ 	if (do_exit)
+diff --git a/src/rtl_tcp.c b/src/rtl_tcp.c
+index 915a8fe..a54666a 100644
+--- a/src/rtl_tcp.c
++++ b/src/rtl_tcp.c
+@@ -92,7 +92,7 @@ void usage(void)
+ 		"\t[-f frequency to tune to [Hz]]\n"
+ 		"\t[-g gain (default: 0 for auto)]\n"
+ 		"\t[-s samplerate in Hz (default: 2048000 Hz)]\n"
+-		"\t[-b number of buffers (default: 32, set by library)]\n"
++		"\t[-b number of buffers (default: 15, set by library)]\n"
+ 		"\t[-n max number of linked list buffers to keep (default: 500)]\n"
+ 		"\t[-d device index (default: 0)]\n"
+ 		"\t[-P ppm_error (default: 0)]\n");
+diff --git a/src/rtl_test.c b/src/rtl_test.c
+index 8bf567e..9a6cfda 100644
+--- a/src/rtl_test.c
++++ b/src/rtl_test.c
+@@ -44,7 +44,6 @@
+ #include "convenience/convenience.h"
+ 
+ #define DEFAULT_SAMPLE_RATE		2048000
+-#define DEFAULT_ASYNC_BUF_NUMBER	32
+ #define DEFAULT_BUF_LENGTH		(16 * 16384)
+ #define MINIMAL_BUF_LENGTH		512
+ #define MAXIMAL_BUF_LENGTH		(256 * 16384)
+@@ -406,7 +405,7 @@ int main(int argc, char **argv)
+ 	} else {
+ 		fprintf(stderr, "Reading samples in async mode...\n");
+ 		r = rtlsdr_read_async(dev, rtlsdr_callback, NULL,
+-				      DEFAULT_ASYNC_BUF_NUMBER, out_block_size);
++				      0, out_block_size);
+ 	}
+ 
+ 	if (do_exit) {
+-- 
+1.7.10.4
+

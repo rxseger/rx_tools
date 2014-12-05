@@ -1,0 +1,50 @@
+Source: rtl-sdr
+Section: libs
+Priority: extra
+Maintainer: Adam Cécile (Le_Vert) <gandalf@le-vert.net>
+Uploaders: A. Maitland Bottoms <bottoms@debian.org>
+Build-Depends: debhelper (>= 9.0.0~), cmake,
+ libusb-1.0-0-dev [linux-any], libusb2-dev [kfreebsd-any]
+Standards-Version: 3.9.4
+Homepage: http://sdr.osmocom.org/trac/wiki/rtl-sdr
+Vcs-Git: git://git.osmocom.org/rtl-sdr
+Vcs-Browser: http://cgit.osmocom.org/cgit/rtl-sdr/
+
+Package: librtlsdr-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: multiarch-support, ${misc:Pre-Depends}
+Depends: librtlsdr0 (= ${binary:Version}), ${misc:Depends}
+Description: Software defined radio receiver for Realtek RTL2832U (development files)
+ rtl-sdr is a software defined radio (SDR) receiver software for certain
+ low-cost DVB-T/DAB(+) USB dongles based on the Realtek RTL2832U chip.
+ .
+ This package contains development files.
+
+Package: librtlsdr0
+Section: libs
+Architecture: any
+Pre-Depends: multiarch-support, ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Multi-Arch: same
+Description: Software defined radio receiver for Realtek RTL2832U (library)
+ rtl-sdr is a software defined radio (SDR) receiver software for certain
+ low-cost DVB-T/DAB(+) USB dongles based on the Realtek RTL2832U chip.
+ .
+ This package contains the shared library.
+ 
+Package: rtl-sdr
+Section: libs
+Architecture: any
+Depends: librtlsdr0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: Software defined radio receiver for Realtek RTL2832U (tools)
+ rtl-sdr is a software defined radio (SDR) receiver software for certain
+ low-cost DVB-T/DAB(+) USB dongles based on the Realtek RTL2832U chip.
+ .
+ This package contains a set of command line utilities:
+  * rtl_adsb: a simple ADS-B decoder for RTL2832 based DVB-T receivers
+  * rtl_eeprom: an EEPROM programming tool for RTL2832 based DVB-T receivers
+  * rtl_fm: a narrow band FM demodulator for RTL2832 based DVB-T receivers
+  * rtl_sdr: an I/Q recorder for RTL2832 based DVB-T receivers
+  * rtl_tcp: an I/Q spectrum server for RTL2832 based DVB-T receivers
+  * rtl_test: a benchmark tool for RTL2832 based DVB-T receivers

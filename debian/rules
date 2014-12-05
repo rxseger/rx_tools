@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+export DEB_HOST_MULTIARCH
+
+%:
+	dh $@
+
+override_dh_auto_configure: debian/librtlsdr0.udev
+	dh_auto_configure -- -DLIB_INSTALL_DIR=lib/$(DEB_HOST_MULTIARCH)
+
+debian/librtlsdr0.udev: rtl-sdr.rules
+	cp -p rtl-sdr.rules debian/librtlsdr0.udev
+
+override_dh_installmodules:
+	dh_installmodules
+	cp -p debian/rtl-sdr-blacklist.conf debian/librtlsdr0/etc/modprobe.d/

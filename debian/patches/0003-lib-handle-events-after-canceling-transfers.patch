@@ -1,0 +1,77 @@
+From 5b0137abaf179e6ca4e90a6ea987a61823a09bb1 Mon Sep 17 00:00:00 2001
+From: Steve Markgraf <steve@steve-m.de>
+Date: Sun, 9 Feb 2014 15:50:32 +0100
+Subject: [PATCH 3/5] lib: handle events after canceling transfers
+
+Otherwise the new transfer status does not propagate
+into the xfer->status and we try to cancel all transfers
+twice.
+
+Also replace the ifdefs with a single macro for backwards
+compatibility.
+
+Signed-off-by: Steve Markgraf <steve@steve-m.de>
+---
+ src/librtlsdr.c |   25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/src/librtlsdr.c b/src/librtlsdr.c
+index f21b187..5062827 100644
+--- a/src/librtlsdr.c
++++ b/src/librtlsdr.c
+@@ -39,6 +39,12 @@
+ #define LIBUSB_CALL
+ #endif
+ 
++/* libusb < 1.0.9 doesn't have libusb_handle_events_timeout_completed */
++#ifndef HAVE_LIBUSB_HANDLE_EVENTS_TIMEOUT_COMPLETED
++#define libusb_handle_events_timeout_completed(ctx, tv, c) \
++	libusb_handle_events_timeout(ctx, tv)
++#endif
++
+ /* two raised to the power of n */
+ #define TWO_POW(n)		((double)(1ULL<<(n)))
+ 
+@@ -1776,11 +1782,8 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev, rtlsdr_read_async_cb_t cb, void *ctx,
+ 	}
+ 
+ 	while (RTLSDR_INACTIVE != dev->async_status) {
+-#ifdef HAVE_LIBUSB_HANDLE_EVENTS_TIMEOUT_COMPLETED
+-		r = libusb_handle_events_timeout_completed(dev->ctx, &tv, &dev->async_cancel);
+-#else
+-		r = libusb_handle_events_timeout(dev->ctx, &tv);
+-#endif
++		r = libusb_handle_events_timeout_completed(dev->ctx, &tv,
++							   &dev->async_cancel);
+ 		if (r < 0) {
+ 			/*fprintf(stderr, "handle_events returned: %d\n", r);*/
+ 			if (r == LIBUSB_ERROR_INTERRUPTED) /* stray signal */
+@@ -1801,6 +1804,11 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev, rtlsdr_read_async_cb_t cb, void *ctx,
+ 				if (LIBUSB_TRANSFER_CANCELLED !=
+ 						dev->xfer[i]->status) {
+ 					r = libusb_cancel_transfer(dev->xfer[i]);
++					/* handle events after canceling
++					 * to allow transfer status to
++					 * propagate */
++					libusb_handle_events_timeout_completed(dev->ctx,
++									       &zerotv, NULL);
+ 					if (r < 0)
+ 						continue;
+ 
+@@ -1812,11 +1820,8 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev, rtlsdr_read_async_cb_t cb, void *ctx,
+ 				/* handle any events that still need to
+ 				 * be handled before exiting after we
+ 				 * just cancelled all transfers */
+-#ifdef HAVE_LIBUSB_HANDLE_EVENTS_TIMEOUT_COMPLETED
+-				libusb_handle_events_timeout_completed(dev->ctx, &zerotv, NULL);
+-#else
+-				libusb_handle_events_timeout(dev->ctx, &zerotv);
+-#endif
++				libusb_handle_events_timeout_completed(dev->ctx,
++								       &zerotv, NULL);
+ 				break;
+ 			}
+ 		}
+-- 
+1.7.10.4
+
