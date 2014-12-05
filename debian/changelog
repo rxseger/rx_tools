@@ -1,3 +1,10 @@
+rtl-sdr (0.5.4~git-1) UNRELEASED; urgency=medium
+
+  * Rebuild for Raspbian
+  * Update to upstream git d447a2e9830463ff83f6dcaef59b5684ff1df255
+
+ -- Oliver Jowett <oliver@mutability.co.uk>  Fri, 05 Dec 2014 17:28:52 +0000
+
 rtl-sdr (0.5.3-3~bpo70+1) wheezy-backports; urgency=low
 
   * Rebuild for wheezy-backports
