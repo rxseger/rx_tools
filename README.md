@@ -1,12 +1,36 @@
-[![librtlsdr version](https://img.shields.io/github/tag/librtlsdr/librtlsdr.svg?style=flat&label=librtlsdr)](https://github.com/librtlsdr/librtlsdr/releases)
-[![Build Status](http://circleci-badges-max.herokuapp.com/img/librtlsdr/librtlsdr/master?token=:circle-ci-token)](https://circleci.com/gh/librtlsdr/librtlsdr/tree/master)
-[![GPLv2 License](http://img.shields.io/badge/license-GPLv2-brightgreen.svg)](https://tldrlegal.com/license/gnu-general-public-license-v2)
+# rtl\_tools
 
-# Description
+Standalone versions of `rtl_fm`, `rtl_power`, and `rtl_sdr` based on [librtlsdr](https://github.com/librtlsdr/librtlsdr)
 
-rtl-sdr turns your Realtek RTL2832 based DVB dongle into a SDR receiver
+Tested with [rxseger/librtlsdr](https://github.com/rxseger/librtlsdr), to install on Mac OS X with [Homebrew](http://brew.sh):
+
+    brew tap rxseger/hackrf
+    brew install --HEAD rxseger/hackrf/librtlsdr
+
+then to build `rtl_tools`:
+
+    make
+
+These binaries should then be available at the root directory:
+
+* `rtl_fm`: demodulator for FM and other modes, see [rtl\_fm guide](http://kmkeen.com/rtl-demod-guide/index.html)
+
+* `rtl_power`: FFT logger, see [rtl\_power](http://kmkeen.com/rtl-power/)
+
+* `rtl_sdr`: emits raw I/Q data
+
+Why build `rtl_tools` from this repository instead of along with librtlsdr?
+Mainly for easier development, no need to rebuild or fork the entire library
+just to make a change to one of these tools.
 
 
-# For more information see:
+Tools from librtlsdr not included in this repository:
 
-http://sdr.osmocom.org/trac/wiki/rtl-sdr
+* `rtl_eeprom`, `rtl_test`, `rtl_ir`: specific to RTL-SDR devices
+* `rtl_tcp`, `rtl_rpcd`: remote networking
+* `rtl_adsb`: see [dump1090](https://github.com/mutability/dump1090)
+
+
+## For more information see:
+
+https://github.com/librtlsdr/librtlsdr
