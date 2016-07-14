@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=
+CFLAGS=-g
 LIBS=$(shell pkg-config --cflags --libs librtlsdr)
 LIBS+=$(shell pkg-config --cflags --libs SoapySDR)
 
