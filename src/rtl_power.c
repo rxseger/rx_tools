@@ -63,8 +63,11 @@
 #include <pthread.h>
 #include <libusb.h>
 
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
+
 #include "rtl-sdr.h"
-#include "convenience/convenience.h"
+#include "convenience/convenience-rtl.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
