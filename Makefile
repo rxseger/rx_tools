@@ -1,7 +1,8 @@
 CC=cc
 CFLAGS=-g
 LIBS=$(shell pkg-config --cflags --libs librtlsdr)
-LIBS+=$(shell pkg-config --cflags --libs SoapySDR)
+SOAPY_LIBS=$(shell pkg-config --cflags --libs SoapySDR)
+LIBS+=$(SOAPY_LIBS)
 
 all: rtl_fm rtl_power rtl_sdr
 
@@ -12,7 +13,7 @@ convenience-rtl.o: src/convenience/convenience-rtl.c src/convenience/convenience
 	$(CC) $(CFLAGS) -c src/convenience/convenience-rtl.c -o convenience-rtl.o
 
 rtl_fm: convenience.o src/rtl_fm.c
-	$(CC) $(CFLAGS) $(LIBS) src/rtl_fm.c convenience.o -o rtl_fm
+	$(CC) $(CFLAGS) $(SOAPY_LIBS) src/rtl_fm.c convenience.o -o rtl_fm
 
 rtl_power: convenience-rtl.o src/rtl_power.c
 	$(CC) $(CFLAGS) $(LIBS) src/rtl_power.c convenience-rtl.o -o rtl_power

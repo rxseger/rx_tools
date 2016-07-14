@@ -75,7 +75,6 @@
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
-#include "rtl-sdr.h"
 #include "convenience/convenience.h"
 
 #define DEFAULT_SAMPLE_RATE		24000
