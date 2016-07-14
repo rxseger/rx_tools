@@ -23,3 +23,5 @@ rtl_sdr: convenience.o src/rtl_sdr.c
 clean:
 	rm -f *.o rtl_fm rtl_power rtl_sdr
 
+test:
+	./rtl_fm -M wbfm -f 107.1M | play -r 32k -t raw -e s -b 16 -c 1 -V1 -
