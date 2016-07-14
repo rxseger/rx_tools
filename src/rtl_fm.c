@@ -1049,7 +1049,7 @@ static void *controller_thread_fn(void *arg)
 		/* hacky hopping */
 		s->freq_now = (s->freq_now + 1) % s->freq_len;
 		optimal_settings(s->freqs[s->freq_now], demod.rate_in);
-		rtlsdr_set_center_freq(dongle.dev, dongle.freq);
+		SoapySDRDevice_setFrequency(dongle.dev, SOAPY_SDR_RX, 0, (double)dongle.freq, NULL);
 		dongle.mute = BUFFER_DUMP;
 	}
 	return 0;
@@ -1350,8 +1350,12 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	r = rtlsdr_open(&dongle.dev, (uint32_t)dongle.dev_index);
-	if (r < 0) {
+	SoapySDRKwargs args = {};
+	SoapySDRKwargs_set(&args, "driver", "rtlsdr"); // TODO: other criteria, dev_index, see above
+	dongle.dev = SoapySDRDevice_make(&args);
+	SoapySDRKwargs_clear(&args);
+
+	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dongle.dev_index);
 		exit(1);
 	}
@@ -1382,7 +1386,7 @@ int main(int argc, char **argv)
 		verbose_gain_set(dongle.dev, dongle.gain);
 	}
 
-	rtlsdr_set_agc_mode(dongle.dev, rtlagc);
+	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);
 
 	verbose_ppm_set(dongle.dev, dongle.ppm_error);
 
@@ -1391,14 +1395,12 @@ int main(int argc, char **argv)
 	if (verbosity && dongle.bandwidth)
 	{
 		int r;
-		uint32_t in_bw, out_bw, last_bw = 0;
 		fprintf(stderr, "Supported bandwidth values in kHz:\n");
-		for ( in_bw = 1; in_bw < 3200; ++in_bw )
-		{
-			r = rtlsdr_set_and_get_tuner_bandwidth(dongle.dev, in_bw*1000, &out_bw, 0 /* =apply_bw */);
-			if ( r == 0 && out_bw != 0 && ( out_bw != last_bw || in_bw == 1 ) )
-				fprintf(stderr, "%s%.1f", (in_bw==1 ? "" : ", "), out_bw/1000.0 );
-			last_bw = out_bw;
+		size_t bw_count = 0;
+		// TODO: well, this is deprecated by getBandwidthRange? SoapySDRRange
+		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, 0, &bw_count);
+		for (size_t k = 0; k < bw_count; ++k) {
+			fprintf(stderr, "%.1f ", bandwidths[k]);
 		}
 		fprintf(stderr,"\n");
 	}
@@ -1453,7 +1455,7 @@ int main(int argc, char **argv)
 	if (output.file != stdout) {
 		fclose(output.file);}
 
-	rtlsdr_close(dongle.dev);
+	SoapySDRDevice_unmake(dongle.dev);
 	return r >= 0 ? r : -r;
 }
 
