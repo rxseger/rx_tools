@@ -151,7 +151,8 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 {
 	int r;
 
-	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, 0, (double)frequency, NULL);
+	SoapySDRKwargs args = {};
+	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, 0, (double)frequency, &args);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set center freq.\n");
 	} else {
