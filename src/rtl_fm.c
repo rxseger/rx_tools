@@ -72,6 +72,9 @@
 #include <math.h>
 #include <pthread.h>
 
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
+
 #include "rtl-sdr.h"
 #include "convenience/convenience.h"
 
