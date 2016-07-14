@@ -900,7 +900,8 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
-	if (SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_U8, NULL, 0, NULL) != 0) {
+	SoapySDRKwargs args = {};
+	if (SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_U8, NULL, 0, &args) != 0) {
 	    fprintf(stderr, "setupStream fail: %s\n", "error" /*SoapySDRDevice_lastError()*/);
 	}
 
