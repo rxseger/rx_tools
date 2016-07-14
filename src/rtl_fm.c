@@ -106,7 +106,8 @@ struct dongle_state
 {
 	int	  exit_flag;
 	pthread_t thread;
-	rtlsdr_dev_t *dev;
+	SoapySDRDevice *dev;
+	SoapySDRStream *stream;
 	int	  dev_index;
 	uint32_t freq;
 	uint32_t rate;
@@ -259,7 +260,7 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		rtlsdr_cancel_async(dongle.dev);
+		SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 		return TRUE;
 	}
 	return FALSE;
@@ -269,7 +270,7 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	rtlsdr_cancel_async(dongle.dev);
+	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 }
 #endif
 
@@ -899,7 +900,28 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
-	rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
+	if (SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_U8, NULL, 0, NULL) != 0) {
+	    fprintf(stderr, "setupStream fail: %s\n", "error" /*SoapySDRDevice_lastError()*/);
+	}
+
+	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
+
+	int r = 0;
+	do
+	{
+	    void *buffs[] = {s->buf16};
+	    int flags = 0;
+	    long long timeNs;
+	    long timeoutNs = 100000;
+	    r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
+	    printf("ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+	    if (r >= 0) {
+		s->buf_len = r;
+	    }
+	    rtlsdr_callback((unsigned char *)s->buf16, s->buf_len, s);
+	} while(r > 0);
+
+	//rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
 	return 0;
 }
 
@@ -1414,7 +1436,7 @@ int main(int argc, char **argv)
 	else {
 		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);}
 
-	rtlsdr_cancel_async(dongle.dev);
+	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 	pthread_join(dongle.thread, NULL);
 	safe_cond_signal(&demod.ready, &demod.ready_m);
 	pthread_join(demod.thread, NULL);
