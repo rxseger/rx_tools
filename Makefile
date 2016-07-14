@@ -1,6 +1,7 @@
 CC=cc
 CFLAGS=
 LIBS=$(shell pkg-config --cflags --libs librtlsdr)
+LIBS+=$(shell pkg-config --cflags --libs SoapySDR)
 
 all: rtl_fm rtl_power rtl_sdr
 
