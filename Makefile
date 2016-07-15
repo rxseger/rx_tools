@@ -19,7 +19,7 @@ rtl_power: convenience-rtl.o src/rtl_power.c
 	$(CC) $(CFLAGS) $(LIBS) src/rtl_power.c convenience-rtl.o -o rtl_power
 
 rtl_sdr: convenience.o src/rtl_sdr.c
-	$(CC) $(CFLAGS) $(LIBS) src/rtl_sdr.c convenience-rtl.o -o rtl_sdr
+	$(CC) $(CFLAGS) $(LIBS) src/rtl_sdr.c convenience.o -o rtl_sdr
 
 clean:
 	rm -f *.o rtl_fm rtl_power rtl_sdr
