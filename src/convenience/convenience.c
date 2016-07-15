@@ -121,6 +121,8 @@ int nearest_gain(SoapySDRDevice *dev, int target_gain)
 	}
 	*/
 	size_t count = 0;
+        /* listGains isn't actually rtlsdr_get_tuner_gains() - it returns the
+         * types gains you can set ("TUNER"), not the possible gain values!
 	char **gains = SoapySDRDevice_listGains(dev, SOAPY_SDR_RX, 0, &count);
 
 	if (count <= 0) {
@@ -143,6 +145,9 @@ int nearest_gain(SoapySDRDevice *dev, int target_gain)
 	fprintf(stderr, "\n");
 
 	SoapySDRStrings_clear(&gains, count);
+        */
+        // TODO: get possible gains
+        nearest = target_gain;
 
 	return nearest;
 }
