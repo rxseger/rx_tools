@@ -900,8 +900,10 @@ static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
 	SoapySDRKwargs args = {};
-	if (SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_U8, NULL, 0, &args) != 0) {
-	    fprintf(stderr, "setupStream fail: %s\n", "error" /*SoapySDRDevice_lastError()*/);
+	char *e; // TODO: api changes to int in 0.5
+	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_U8, NULL, 0, &args);
+	if (e != 0) {
+		fprintf(stderr, "setupStream fail: %s\n", e);
 	}
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
