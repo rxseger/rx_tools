@@ -911,16 +911,24 @@ static void *dongle_thread_fn(void *arg)
 	int r = 0;
 	do
 	{
-	    void *buffs[] = {s->buf16};
-	    int flags = 0;
-	    long long timeNs;
-	    long timeoutNs = 100000;
-	    r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
-	    fprintf(stderr, "ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
-	    if (r >= 0) {
-		s->buf_len = r;
-	    }
-	    rtlsdr_callback((unsigned char *)s->buf16, s->buf_len, s);
+		void *buffs[] = {s->buf16};
+		int flags = 0;
+		long long timeNs;
+		long timeoutNs = 100000;
+		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
+		fprintf(stderr, "ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+		if (r >= 0) {
+			s->buf_len = r;
+			for(int i = 0; i < s->buf_len; ++i) {
+				//fprintf(stderr, "%.4x ", s->buf16[i]);
+				// Convert CS8 to CU8, back to RTL-SDR native format!
+				// TODO: see https://github.com/pothosware/SoapyRTLSDR/issues/15
+				// TODO: or use "direct buffer access API"?
+				s->buf16[i] += 127;
+			}
+			fprintf(stderr, "\n");
+		}
+		rtlsdr_callback((unsigned char *)s->buf16, s->buf_len, s);
 	} while(r > 0);
 
 	//rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
