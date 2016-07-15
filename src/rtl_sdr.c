@@ -219,10 +219,13 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Reading samples in sync mode...\n");
 		SoapySDRKwargs args = {};
 		if (SoapySDRDevice_setupStream(dev, &stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args) != 0) {
-			fprintf(stderr, "Failde to setup stream\n");
+			fprintf(stderr, "Failed to setup stream\n");
 			exit(1);
 		}
-		SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
+		if (SoapySDRDevice_activateStream(dev, stream, 0, 0, 0) != 0) {
+			fprintf(stderr, "Failed to activate stream\n");
+                        exit(1);
+                }
 		while (!do_exit) {
 			void *buffs[] = {buffer};
 			int flags = 0;
