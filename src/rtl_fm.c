@@ -916,7 +916,7 @@ static void *dongle_thread_fn(void *arg)
 	    long long timeNs;
 	    long timeoutNs = 100000;
 	    r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
-	    printf("ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+	    fprintf(stderr, "ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
 	    if (r >= 0) {
 		s->buf_len = r;
 	    }

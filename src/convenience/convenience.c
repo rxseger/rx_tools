@@ -127,11 +127,11 @@ int nearest_gain(SoapySDRDevice *dev, int target_gain)
 		return 0;
 	}
 
-	printf("Rx gains: ");
+	fprintf(stderr, "Rx gains: ");
 	nearest = atoi(gains[0]);
 
 	for (size_t i = 0; i < count; i++) {
-		printf("%s, ", gains[i]);
+		fprintf(stderr, "%s, ", gains[i]);
 
 		err1 = abs(target_gain - nearest);
 		err2 = abs(target_gain - atoi(gains[i]));
@@ -140,7 +140,7 @@ int nearest_gain(SoapySDRDevice *dev, int target_gain)
 		}
 	}
 
-	printf("\n");
+	fprintf(stderr, "\n");
 
 	SoapySDRStrings_clear(&gains, count);
 
