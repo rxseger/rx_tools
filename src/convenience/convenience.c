@@ -246,6 +246,7 @@ int verbose_offset_tuning(SoapySDRDevice *dev)
 	return r;
 }
 
+int verbose_gain_set(SoapySDRDevice *dev, int gain);
 int verbose_auto_gain(SoapySDRDevice *dev)
 {
 	int r;
@@ -258,6 +259,9 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 		fprintf(stderr, "Tuner gain set to automatic.\n");
 	}
 	*/
+	// For now, set 26.5 dB as in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067
+	verbose_gain_set(dev, 265);
+
 	return r;
 }
 
