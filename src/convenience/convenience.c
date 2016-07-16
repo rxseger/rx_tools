@@ -312,21 +312,23 @@ int verbose_reset_buffer(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_device_search(char *s)
+SoapySDRDevice *verbose_device_search(char *s)
 {
 	size_t device_count = 0;
 	size_t i = 0;
 	int device, offset;
 	char *s2;
 	char vendor[256], product[256], serial[256];
+	SoapySDRDevice *dev = NULL;
 
 	SoapySDRKwargs args = {}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
 	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
-		return -1;
+		return NULL;
 	}
 	fprintf(stderr, "Found %zu device(s):\n", device_count);
+
 	for (i = 0; i < device_count; i++) {
 		//rtlsdr_get_device_usb_strings(i, vendor, product, serial);
 		//fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
@@ -334,15 +336,30 @@ int verbose_device_search(char *s)
 		for (size_t j = 0; j < results[i].size; j++)
 		{
 			fprintf(stderr, "%s=%s, ", results[i].keys[j], results[i].vals[j]);
+			// TODO: save and match on keys?
 		}
 		fprintf(stderr, "\n");
 	}
 	fprintf(stderr, "\n");
 
+	fprintf(stderr, "verbose_device_search(%s)\n", s);
+	if (s) {
+		// Exact serial match TODO: prefix, suffix
+		// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
+		//SoapySDRKwargs_set(&args, "serial", s);
+
+		SoapySDRKwargs_set(&args, "driver", "rtlsdr");
+		SoapySDRKwargs_set(&args, "rtl", s);
+	}
+	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
+
+	dev = SoapySDRDevice_make(&args);
+	return dev;
+
+
 	// TODO: device search matching by properties above (key/value pairs), right now only returning zeroth device
 	// example device:
 	//   0: available=Yes, driver=rtlsdr, label=Generic RTL2832U OEM :: 3, manufacturer=Realtek, product=RTL2838UHIDIR, rtl=0, serial=3, tuner=Rafael Micro R820T,
-	return 0;
 #if 0
 	/* does string look like raw id number */
 	device = (int)strtol(s, &s2, 0);
@@ -386,7 +403,6 @@ int verbose_device_search(char *s)
 	}
 	fprintf(stderr, "No matching devices found.\n");
 #endif
-	return -1;
 }
 
 int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len)

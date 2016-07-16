@@ -149,10 +149,10 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  * Find the closest matching device.
  *
  * \param s a string to be parsed
- * \return dev_index int, -1 on error
+ * \return dev device, NULL on error
  */
 
-int verbose_device_search(char *s);
+SoapySDRDevice *verbose_device_search(char *s);
 
 /*!
  * Read samples as Complex Unsigned 8-bit (CU8) pairs

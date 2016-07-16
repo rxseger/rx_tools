@@ -96,8 +96,7 @@ int main(int argc, char **argv)
 	int sync_mode = 0;
 	FILE *file;
 	uint8_t *buffer;
-	int dev_index = 0;
-	int dev_given = 0;
+	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
@@ -105,8 +104,7 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:S")) != -1) {
 		switch (opt) {
 		case 'd':
-			dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dev_query = optarg;
 			break;
 		case 'f':
 			frequency = (uint32_t)atofs(optarg);
@@ -154,21 +152,10 @@ int main(int argc, char **argv)
 
 	buffer = malloc(out_block_size * sizeof(uint8_t));
 
-	if (!dev_given) {
-		dev_index = verbose_device_search("0");
-	}
+	dev = verbose_device_search(dev_query);
 
-	if (dev_index < 0) {
-		exit(1);
-	}
-
-	SoapySDRKwargs args = {};
-	SoapySDRKwargs_set(&args, "driver", "rtlsdr"); // TODO: other criteria, dev_index, see above
-	dev = SoapySDRDevice_make(&args);
-	SoapySDRKwargs_clear(&args);
-
-	if (r < 0) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
+	if (!dev) {
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
 #ifndef _WIN32

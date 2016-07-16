@@ -107,7 +107,7 @@ struct dongle_state
 	pthread_t thread;
 	SoapySDRDevice *dev;
 	SoapySDRStream *stream;
-	int	  dev_index;
+	char	*dev_query;
 	uint32_t freq;
 	uint32_t rate;
 	uint32_t bandwidth;
@@ -1181,7 +1181,6 @@ int main(int argc, char **argv)
 	struct sigaction sigact;
 #endif
 	int r, opt;
-	int dev_given = 0;
 	int custom_ppm = 0;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
@@ -1193,8 +1192,7 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
 		switch (opt) {
 		case 'd':
-			dongle.dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dongle.dev_query = optarg;
 			break;
 		case 'f':
 			if (controller.freq_len >= FREQUENCIES_LIMIT) {
@@ -1341,21 +1339,10 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
-	if (!dev_given) {
-		dongle.dev_index = verbose_device_search("0");
-	}
-
-	if (dongle.dev_index < 0) {
-		exit(1);
-	}
-
-	SoapySDRKwargs args = {};
-	SoapySDRKwargs_set(&args, "driver", "rtlsdr"); // TODO: other criteria, dev_index, see above
-	dongle.dev = SoapySDRDevice_make(&args);
-	SoapySDRKwargs_clear(&args);
+	dongle.dev = verbose_device_search(dongle.dev_query);
 
 	if (!dongle.dev) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dongle.dev_index);
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
 		exit(1);
 	}
 #ifndef _WIN32

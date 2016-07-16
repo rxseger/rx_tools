@@ -772,8 +772,7 @@ int main(int argc, char **argv)
 	int i, length, r, opt, wb_mode = 0;
 	int f_set = 0;
 	int gain = AUTO_GAIN; // tenths of a dB
-	int dev_index = 0;
-	int dev_given = 0;
+	char *dev_query = NULL;
 	int ppm_error = 0;
 	int interval = 10;
 	int fft_threads = 1;
@@ -798,8 +797,7 @@ int main(int argc, char **argv)
 			f_set = 1;
 			break;
 		case 'd':
-			dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dev_query = optarg;
 			break;
 		case 'g':
 			gain = (int)(atof(optarg) * 10);
@@ -892,24 +890,14 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
-	if (!dev_given) {
-		dev_index = verbose_device_search("0");
-	}
+	dev = verbose_device_search(dev_query);
 
-	if (dev_index < 0) {
+	if (!dev) {
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
 
 	SoapySDRKwargs args = {};
-	SoapySDRKwargs_set(&args, "driver", "rtlsdr"); // TODO: other criteria, dev_index, see above
-	dev = SoapySDRDevice_make(&args);
-	SoapySDRKwargs_clear(&args);
-
-	if (!dev) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
-		exit(1);
-	}
-
 	if (SoapySDRDevice_setupStream(dev, &stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args) != 0) {
 		fprintf(stderr, "setupStream fail\n");
 		exit(1);
