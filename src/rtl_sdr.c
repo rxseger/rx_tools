@@ -234,6 +234,11 @@ int main(int argc, char **argv)
 			if (r < 0) {
 				fprintf(stderr, "WARNING: sync read failed.\n");
 				break;
+			} else {
+                                // TODO: get native CU8, see https://github.com/pothosware/SoapyRTLSDR/issues/15 also in fm
+				for(int i = 0; i < r; ++i) {
+					buffer[i] += 127;
+				}
 			}
 			n_read = r;
                         // TODO: convert CS8 to CU8 (+127)
