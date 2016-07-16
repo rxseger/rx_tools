@@ -919,7 +919,8 @@ static void *dongle_thread_fn(void *arg)
 		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
 		//fprintf(stderr, "ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
 		if (r >= 0) {
-			s->buf_len = r;
+			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+			s->buf_len = r * 2;
 			for(int i = 0; i < s->buf_len; ++i) {
 				//fprintf(stderr, "%.4x ", s->buf16[i]);
 				// Convert CS8 to CU8, back to RTL-SDR native format!
