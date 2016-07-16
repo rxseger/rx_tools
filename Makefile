@@ -9,9 +9,6 @@ all: rtl_fm rtl_power rtl_sdr
 convenience.o: src/convenience/convenience.c src/convenience/convenience.h
 	$(CC) $(CFLAGS) -c src/convenience/convenience.c -o convenience.o
 
-convenience-rtl.o: src/convenience/convenience-rtl.c src/convenience/convenience-rtl.h
-	$(CC) $(CFLAGS) -c src/convenience/convenience-rtl.c -o convenience-rtl.o
-
 rtl_fm: convenience.o src/rtl_fm.c
 	$(CC) $(CFLAGS) $(SOAPY_LIBS) src/rtl_fm.c convenience.o -o rtl_fm
 
