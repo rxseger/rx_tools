@@ -227,22 +227,12 @@ int main(int argc, char **argv)
                         exit(1);
                 }
 		while (!do_exit) {
-			void *buffs[] = {buffer};
-			int flags = 0;
-			long long timeNs = 0;
-			r = SoapySDRDevice_readStream(dev, stream, buffs, out_block_size, &flags, &timeNs, 100000);
+			r = read_samples_cu8(dev, stream, buffer, out_block_size);
 			if (r < 0) {
 				fprintf(stderr, "WARNING: sync read failed.\n");
 				break;
-			} else {
-                                // TODO: get native CU8, see https://github.com/pothosware/SoapyRTLSDR/issues/15 also in fm
-				for(int i = 0; i < r; ++i) {
-					buffer[i] += 127;
-				}
 			}
 			n_read = r;
-                        // TODO: convert CS8 to CU8 (+127)
-                        fprintf(stderr, "n_read=%d\n", n_read);
 
 			if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
 				n_read = bytes_to_read;
@@ -254,7 +244,7 @@ int main(int argc, char **argv)
 				break;
 			}
 
-                        // TODO: hmm.. n_read 8192, but out_block_size (16 * 16384) is much larger
+                        // TODO: hmm.. n_read 8192, but out_block_size (16 * 16384) is much larger TODO: loop? or accept 8192? rtl_fm ok with it
                         /*
 			if ((uint32_t)n_read < out_block_size) {
 				fprintf(stderr, "Short read, samples lost, exiting! (%d < %d)\n", n_read, out_block_size);

@@ -912,26 +912,12 @@ static void *dongle_thread_fn(void *arg)
 	int r = 0;
 	do
 	{
-		void *buffs[] = {buf};
-		int flags = 0;
-		long long timeNs;
-		long timeoutNs = 100000;
-		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
-		//fprintf(stderr, "ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+		r = read_samples_cu8(s->dev, s->stream, buf, MAXIMUM_BUF_LENGTH);
+
 		if (r >= 0) {
-			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-			s->buf_len = r * 2;
-			for(int i = 0; i < s->buf_len; ++i) {
-				//fprintf(stderr, "%.4x ", s->buf16[i]);
-				// Convert CS8 to CU8, back to RTL-SDR native format!
-				// TODO: see https://github.com/pothosware/SoapyRTLSDR/issues/15
-				// TODO: or use "direct buffer access API"?
-                                // TODO: or2, remove +127 here and -127 in rtlsdr_callback! back and forth too many times (-127 in SoapyRTLSDR)
-				buf[i] += 127;
-			}
-			//fprintf(stderr, "\n");
+			s->buf_len = r;
+			rtlsdr_callback(buf, s->buf_len, s);
 		}
-		rtlsdr_callback(buf, s->buf_len, s);
 	} while(r > 0);
 
 	//rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
