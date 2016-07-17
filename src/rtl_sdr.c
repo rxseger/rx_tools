@@ -42,7 +42,7 @@
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
 static int do_exit = 0;
-static uint32_t bytes_to_read = 0;
+static uint32_t samples_to_read = 0;
 static SoapySDRDevice *dev = NULL;
 static SoapySDRStream *stream = NULL;
 
@@ -57,6 +57,7 @@ void usage(void)
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b output_block_size (default: 16 * 16384)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
+		"\t[-F output format, cu8|cs8|cs16 (default: cu8)]\n"
 		"\t[-S force sync output (default: async)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n\n");
 	exit(1);
@@ -95,13 +96,15 @@ int main(int argc, char **argv)
 	int ppm_error = 0;
 	int sync_mode = 0;
 	FILE *file;
-	uint8_t *buffer;
+	int16_t *buffer;
+	uint8_t *buf8 = NULL;
 	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
+	char *output_format = SOAPY_SDR_CU8;
 
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:S")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:SF:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -122,10 +125,24 @@ int main(int argc, char **argv)
 			out_block_size = (uint32_t)atof(optarg);
 			break;
 		case 'n':
-			bytes_to_read = (uint32_t)atof(optarg) * 2;
+			// half of I/Q pair count (double for one each of I and Q)
+			samples_to_read = (uint32_t)atof(optarg) * 2;
 			break;
 		case 'S':
 			sync_mode = 1;
+			break;
+		case 'F':
+			if (strcasecmp(optarg, "CU8") == 0) {
+				output_format = SOAPY_SDR_CU8;
+			} else if (strcasecmp(optarg, "CS8") == 0) {
+				output_format = SOAPY_SDR_CS8;
+			} else if (strcasecmp(optarg, "CS16") == 0) {
+				output_format = SOAPY_SDR_CS16;
+			} else {
+				// TODO: support others? maybe after https://github.com/pothosware/SoapySDR/issues/49 Conversion support
+				fprintf(stderr, "unsupported output format: %s\n", output_format);
+				exit(1);
+			}
 			break;
 		default:
 			usage();
@@ -150,7 +167,10 @@ int main(int argc, char **argv)
 		out_block_size = DEFAULT_BUF_LENGTH;
 	}
 
-	buffer = malloc(out_block_size * sizeof(uint8_t));
+	buffer = malloc(out_block_size * sizeof(int16_t));
+	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
+		buf8 = malloc(out_block_size * sizeof(uint8_t));
+	}
 
 	r = verbose_device_search(dev_query, &dev, &stream);
 
@@ -210,22 +230,55 @@ int main(int argc, char **argv)
                         exit(1);
                 }
 		while (!do_exit) {
-			r = read_samples_cu8(dev, stream, buffer, out_block_size);
-			if (r < 0) {
-				fprintf(stderr, "WARNING: sync read failed.\n");
+			void *buffs[] = {buffer};
+			int flags = 0;
+			long long timeNs = 0;
+			long timeoutNs = 1000000;
+			int n_read = 0, r;
+
+			r = SoapySDRDevice_readStream(dev, stream, buffs, out_block_size, &flags, &timeNs, timeoutNs);
+
+			//fprintf(stderr, "readStream ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+			if (r >= 0) {
+				// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+				n_read = r * 2;
+			} else {
+				// TODO: fix sometimes returns r=-4 SOAPY_SDR_OVERFLOW why?
+				// see error codes https://github.com/pothosware/SoapySDR/blob/master/include/SoapySDR/Errors.h
+				fprintf(stderr, "WARNING: sync read failed. %d\n", r);
 				break;
 			}
-			n_read = r;
 
-			if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
-				n_read = bytes_to_read;
+			if ((samples_to_read > 0) && (samples_to_read < (uint32_t)n_read)) {
+				n_read = samples_to_read;
 				do_exit = 1;
 			}
 
-			if (fwrite(buffer, 1, n_read, file) != (size_t)n_read) {
-				fprintf(stderr, "Short write, samples lost, exiting!\n");
-				break;
+			if (output_format == SOAPY_SDR_CS16) {
+				// The "native" format we read in, write out no conversion needed
+				// (Always reading in CS16 to support >8-bit devices)
+				if (fwrite(buffer, sizeof(int16_t), n_read, file) != (size_t)n_read) {
+					fprintf(stderr, "Short write, samples lost, exiting!\n");
+					break;
+				}
+			} else if (output_format == SOAPY_SDR_CS8) {
+				for (int i = 0; i < n_read; ++i) {
+					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
+				}
+				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
+					fprintf(stderr, "Short write, samples lost, exiting!\n");
+					break;
+				}
+			} else if (output_format == SOAPY_SDR_CU8) {
+				for (int i = 0; i < n_read; ++i) {
+					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
+				}
+				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
+					fprintf(stderr, "Short write, samples lost, exiting!\n");
+					break;
+				}
 			}
+
 
                         // TODO: hmm.. n_read 8192, but out_block_size (16 * 16384) is much larger TODO: loop? or accept 8192? rtl_fm ok with it
                         /*
@@ -235,8 +288,8 @@ int main(int argc, char **argv)
 			}
                         */
 
-			if (bytes_to_read > 0)
-				bytes_to_read -= n_read;
+			if (samples_to_read > 0)
+				samples_to_read -= n_read;
 		}
 	}
 
