@@ -312,6 +312,66 @@ int verbose_reset_buffer(SoapySDRDevice *dev)
 	return r;
 }
 
+static void show_device_info(SoapySDRDevice *dev)
+{
+	size_t len = 0, i = 0;
+	char **antennas = NULL;
+	char **gains = NULL;
+	char **frequencies = NULL;
+	double *rates = NULL;
+	double *bandwidths = NULL;
+	SoapySDRKwargs args;
+	char *hwkey = NULL;
+
+	int direction = SOAPY_SDR_RX;
+	int channel = 0;
+
+	hwkey = SoapySDRDevice_getHardwareKey(dev);
+	fprintf(stderr, "Using device %s: ", hwkey);
+
+	args = SoapySDRDevice_getHardwareInfo(dev);
+	for (i = 0; i < args.size; ++i) {
+		fprintf(stderr, "%s=%s ", args.keys[i], args.vals[i]);
+	}
+	fprintf(stderr, "\n");
+
+	antennas = SoapySDRDevice_listAntennas(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu antenna(s): ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", antennas[i]);
+	}
+	fprintf(stderr, "\n");
+
+
+	gains = SoapySDRDevice_listGains(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu gain(s): ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", gains[i]);
+	}
+	fprintf(stderr, "\n");
+
+	frequencies = SoapySDRDevice_listFrequencies(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu frequencies: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", frequencies[i]);
+	}
+	fprintf(stderr, "\n");
+
+	rates = SoapySDRDevice_listSampleRates(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu sample rates: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%.0f ", rates[i]);
+	}
+	fprintf(stderr, "\n");
+
+	bandwidths = SoapySDRDevice_listBandwidths(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu bandwidths: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%.0f ", bandwidths[i]);
+	}
+	fprintf(stderr, "\n");
+}
+
 SoapySDRDevice *verbose_device_search(char *s)
 {
 	size_t device_count = 0;
@@ -354,6 +414,10 @@ SoapySDRDevice *verbose_device_search(char *s)
 	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
 
 	dev = SoapySDRDevice_make(&args);
+	if (!dev) return NULL;
+
+	show_device_info(dev);
+
 	return dev;
 
 
