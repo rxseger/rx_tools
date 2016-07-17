@@ -490,34 +490,4 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 #endif
 }
 
-int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len)
-{
-	void *buffs[] = {buf};
-	int flags = 0;
-	long long timeNs = 0;
-	long timeoutNs = 1000000;
-	int bytes_read, r;
-
-	r = SoapySDRDevice_readStream(dev, stream, buffs, len, &flags, &timeNs, timeoutNs);
-
-	//fprintf(stderr, "readStream ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
-	if (r >= 0) {
-		// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-		bytes_read = r * 2;
-
-		// Convert CS8 to CU8, back to RTL-SDR native format!
-		// TODO: see https://github.com/pothosware/SoapyRTLSDR/issues/15
-		// TODO: or use "direct buffer access API"?
-		// TODO: or2, remove +127 here and -127 in rtlsdr_callback! back and forth too many times (-127 in SoapyRTLSDR)
-		for(int i = 0; i < bytes_read; ++i) {
-			buf[i] += 127;
-		}
-		return bytes_read;
-	} else {
-		// error code
-		return r;
-	}
-}
-
-
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab
