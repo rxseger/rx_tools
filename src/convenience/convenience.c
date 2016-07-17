@@ -474,7 +474,7 @@ int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, 
 	void *buffs[] = {buf};
 	int flags = 0;
 	long long timeNs;
-	long timeoutNs = 100000;
+	long timeoutNs = 1000000;
 	int bytes_read, r;
 
 	r = SoapySDRDevice_readStream(dev, stream, buffs, len, &flags, &timeNs, timeoutNs);
