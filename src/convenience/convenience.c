@@ -250,7 +250,7 @@ int verbose_gain_set(SoapySDRDevice *dev, int gain);
 int verbose_auto_gain(SoapySDRDevice *dev)
 {
 	int r;
-	r = -1;
+	r = 0;
 	/* TODO: not bridged, https://github.com/pothosware/SoapyRTLSDR/search?utf8=✓&q=rtlsdr_set_tuner_gain_mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 0);
 	if (r != 0) {
@@ -259,9 +259,20 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 		fprintf(stderr, "Tuner gain set to automatic.\n");
 	}
 	*/
-	// For now, set 40 dB, high
-	// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
-	verbose_gain_set(dev, 400);
+
+	// Per-driver hacks
+	char *driver = SoapySDRDevice_getDriverKey(dev);
+	if (strcmp(driver, "RTLSDR") == 0) {
+		// For now, set 40.0 dB, high
+		// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
+		// TODO: remove or change after auto-gain? https://github.com/pothosware/SoapyRTLSDR/issues/21 rtlsdr_set_tuner_gain_mode(dev, 0);
+		r = verbose_gain_set(dev, 400);
+	} else if (strcmp(driver, "HackRF") == 0) {
+		// HackRF has three gains LNA, VGA, and AMP, setting total distributes amongst, 116.0 dB seems to work well,
+		// even though it logs HACKRF_ERROR_INVALID_PARAM why? https://github.com/rxseger/rx_tools/issues/9
+		r = verbose_gain_set(dev, 1160);
+	}
+	// otherwise leave default
 
 	return r;
 }
