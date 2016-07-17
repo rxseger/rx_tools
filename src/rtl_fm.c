@@ -875,12 +875,12 @@ static void rtlsdr_callback(uint8_t *buf, uint32_t len, void *ctx)
 		return;}
 	if (s->mute) {
 		for (i=0; i<s->mute; i++) {
-			buf[i] = 127;}
+			buf[i] = 0;}
 		s->mute = 0;
 	}
 	/* 1st: convert to 16 bit - to allow easier calculation of DC */
 	for (i=0; i<(int)len; i++) {
-		s->buf16[i] = ( (int16_t)buf[i] - 127 );
+		s->buf16[i] = ( (int16_t)buf[i] );
 	}
 	/* 2nd: do DC filtering BEFORE up-mixing */
 	if (d->dc_block_raw) {
@@ -913,10 +913,17 @@ static void *dongle_thread_fn(void *arg)
 	int r = 0;
 	do
 	{
-		r = read_samples_cu8(s->dev, s->stream, buf, MAXIMUM_BUF_LENGTH);
+		void *buffs[] = {buf};
+		int flags = 0;
+		long long timeNs = 0;
+		long timeoutNs = 1000000;
+
+		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
 
 		if (r >= 0) {
-			s->buf_len = r;
+			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+			s->buf_len = r * 2;
+
 			rtlsdr_callback(buf, s->buf_len / sizeof(uint8_t), s);
 		}
 	} while(r > 0);
