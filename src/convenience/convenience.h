@@ -149,10 +149,12 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  * Find the closest matching device.
  *
  * \param s a string to be parsed
- * \return dev device, NULL on error
+ * \param devOut device output returned
+ * \param streamOut stream output returned
+ * \return dev 0 if successful
  */
 
-SoapySDRDevice *verbose_device_search(char *s);
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut);
 
 /*!
  * Read samples as Complex Unsigned 8-bit (CU8) pairs
@@ -160,7 +162,7 @@ SoapySDRDevice *verbose_device_search(char *s);
  * \param dev the device handle
  * \param stream the stream handle
  * \param buf buffer to read into
- * \param len maximum length of buffer
+ * \param len maximum number of elements in buf
  * \return number of bytes read, or negative if an error
  */
 int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len);

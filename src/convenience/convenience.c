@@ -372,7 +372,7 @@ static void show_device_info(SoapySDRDevice *dev)
 	fprintf(stderr, "\n");
 }
 
-SoapySDRDevice *verbose_device_search(char *s)
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut)
 {
 	size_t device_count = 0;
 	size_t i = 0;
@@ -381,11 +381,18 @@ SoapySDRDevice *verbose_device_search(char *s)
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
 
+	// Hack to redirect stdout to stderr so it doesn't interfere with audio output on stdout
+	// see https://github.com/rxseger/rx_tools/pull/11#issuecomment-233168397
+	// because SoapySDR and UHD log there, TOOO: change in SoapySDR_Log?
+	// This is restored after stream setup, if it successful.
+	int tmp_stdout = dup(STDOUT_FILENO);
+	dup2(STDERR_FILENO, STDOUT_FILENO);
+
 	SoapySDRKwargs args = {}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
 	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
-		return NULL;
+		return -1;
 	}
 	fprintf(stderr, "Found %zu device(s):\n", device_count);
 
@@ -414,11 +421,24 @@ SoapySDRDevice *verbose_device_search(char *s)
 	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
 
 	dev = SoapySDRDevice_make(&args);
-	if (!dev) return NULL;
+	if (!dev) {
+		fprintf(stderr, "SoapySDRDevice_make failed\n");
+		return -1;
+	}
 
 	show_device_info(dev);
 
-	return dev;
+	SoapySDRKwargs streamArgs = {};
+	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &streamArgs) != 0) {
+		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
+		return -3;
+	}
+
+	// Restore stdout back to stdout
+	dup2(tmp_stdout, STDOUT_FILENO);
+
+	*devOut = dev;
+	return 0;
 
 
 	// TODO: device search matching by properties above (key/value pairs), right now only returning zeroth device

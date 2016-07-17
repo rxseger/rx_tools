@@ -861,7 +861,9 @@ void full_demod(struct demod_state *d)
 	}
 }
 
-static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
+// buf: buffer
+// len: number of elements in buf
+static void rtlsdr_callback(uint8_t *buf, uint32_t len, void *ctx)
 {
 	int i;
 	struct dongle_state *s = ctx;
@@ -899,15 +901,14 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
-	SoapySDRKwargs args = {};
-	char *e; // TODO: api changes to int in 0.5
-	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args);
-	if (e != 0) {
-		fprintf(stderr, "setupStream fail: %s\n", e);
-	}
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
-	uint8_t buf[MAXIMUM_BUF_LENGTH];
+	uint8_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(uint8_t));
+	bzero(buf, MAXIMUM_BUF_LENGTH * sizeof(uint8_t));
+	if (!buf) {
+		perror("malloc");
+		exit(1);
+	}
 
 	int r = 0;
 	do
@@ -916,7 +917,7 @@ static void *dongle_thread_fn(void *arg)
 
 		if (r >= 0) {
 			s->buf_len = r;
-			rtlsdr_callback(buf, s->buf_len, s);
+			rtlsdr_callback(buf, s->buf_len / sizeof(uint8_t), s);
 		}
 	} while(r > 0);
 
@@ -1339,7 +1340,7 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
-	dongle.dev = verbose_device_search(dongle.dev_query);
+	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
