@@ -71,7 +71,7 @@
 
 #define DEFAULT_BUF_LENGTH		(1 * 16384)
 #define AUTO_GAIN				-100
-#define BUFFER_DUMP				(1<<12)
+#define BUFFER_DUMP				DEFAULT_BUF_LENGTH
 
 #define MAXIMUM_RATE			2800000
 #define MINIMUM_RATE			1000000
@@ -102,7 +102,7 @@ struct tuning_state
 	//pthread_rwlock_t avg_lock;
 	//pthread_mutex_t avg_mutex;
 	/* having the iq buffer here is wasteful, but will avoid contention */
-	uint8_t *buf8;
+	int16_t *buf16;
 	int buf_len;
 	//int *comp_fir;
 	//pthread_rwlock_t buf_lock;
@@ -402,14 +402,14 @@ void rms_power(struct tuning_state *ts)
 /* for bins between 1MHz and 2MHz */
 {
 	int i, s;
-	uint8_t *buf = ts->buf8;
+	int16_t *buf = ts->buf16;
 	int buf_len = ts->buf_len;
 	long p, t;
 	double dc, err;
 
 	p = t = 0L;
 	for (i=0; i<buf_len; i++) {
-		s = (int)buf[i] - 127;
+		s = (int)buf[i];
 		t += (long)s;
 		p += (long)(s * s);
 	}
@@ -511,8 +511,8 @@ void frequency_range(char *arg, double crop)
 		for (j=0; j<(1<<bin_e); j++) {
 			ts->avg[j] = 0L;
 		}
-		ts->buf8 = (uint8_t*)malloc(buf_len * sizeof(uint8_t));
-		if (!ts->buf8) {
+		ts->buf16 = (int16_t*)malloc(buf_len * sizeof(int16_t));
+		if (!ts->buf16) {
 			fprintf(stderr, "Error: malloc.\n");
 			exit(1);
 		}
@@ -532,7 +532,7 @@ void frequency_range(char *arg, double crop)
 
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 {
-	uint8_t dump[BUFFER_DUMP];
+	int16_t dump[BUFFER_DUMP];
 	int n_read;
 
 	SoapySDRKwargs args = {};
@@ -541,8 +541,16 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 
 	/* wait for settling and flush buffer */
 	usleep(5000);
-	n_read = read_samples_cu8(d, s, dump, BUFFER_DUMP/2);
-	if (n_read != BUFFER_DUMP) {
+
+	void *buffs[] = {dump};
+	int flags = 0;
+	long long timeNs = 0;
+	long timeoutNs = 1000000;
+	int r;
+
+	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
+
+	if (r < 0) {
 		fprintf(stderr, "Error: bad retune.\n");}
 }
 
@@ -650,7 +658,23 @@ void scanner(void)
 
 		if (f != ts->freq) {
 			retune(dev, stream, ts->freq);}
-		n_read = read_samples_cu8(dev, stream, ts->buf8, buf_len);
+
+		void *buffs[] = {ts->buf16};
+		int flags = 0;
+		long long timeNs = 0;
+		long timeoutNs = 1000000;
+		int r;
+
+		r = SoapySDRDevice_readStream(dev, stream, buffs, buf_len, &flags, &timeNs, timeoutNs);
+
+		if (r >= 0) {
+			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+			n_read = r * 2;
+		} else {
+			fprintf(stderr, "Error: reading stream %d\n", r);
+			continue;
+		}
+
 		/* TODO: n_read=12288 (=6144*2) but buf_len=16384?
 		if (n_read != buf_len) {
 			fprintf(stderr, "Error: dropped samples. (n_read=%d, buf_len=%d)\n", n_read, buf_len);}
@@ -662,7 +686,10 @@ void scanner(void)
 		}
 		/* prep for fft */
 		for (j=0; j<buf_len; j++) {
-			fft_buf[j] = (int16_t)ts->buf8[j] - 127;
+			//fft_buf[j] = (int16_t)ts->buf8[j] - 127;
+			// Already in signed 16-bit format TODO: remove unnecessary conversion? but struct comment
+			// says "having the iq buffer here is wasteful, but will avoid contention" ... maybe need it?
+			fft_buf[j] = (int16_t)ts->buf16[j];
 		}
 		ds = ts->downsample;
 		ds_p = ts->downsample_passes;
@@ -993,7 +1020,7 @@ int main(int argc, char **argv)
 	free(window_coefs);
 	//for (i=0; i<tune_count; i++) {
 	//	free(tunes[i].avg);
-	//	free(tunes[i].buf8);
+	//	free(tunes[i].buf16);
 	//}
 	return r >= 0 ? r : -r;
 }
