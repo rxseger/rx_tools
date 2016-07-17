@@ -34,7 +34,8 @@
 
 #include <math.h>
 
-#include "rtl-sdr.h"
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
 
 double atofs(char *s)
 /* standard suffixes */
@@ -109,38 +110,55 @@ double atofp(char *s)
 	return atof(s);
 }
 
-int nearest_gain(rtlsdr_dev_t *dev, int target_gain)
+int nearest_gain(SoapySDRDevice *dev, int target_gain)
 {
-	int i, r, err1, err2, count, nearest;
-	int* gains;
+	int i, r, err1, err2, nearest;
+	/* TODO: what is equivalent of rtlsdr_set_tuner_gain_mode?
 	r = rtlsdr_set_tuner_gain_mode(dev, 1);
 	if (r < 0) {
 		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
 		return r;
 	}
-	count = rtlsdr_get_tuner_gains(dev, NULL);
+	*/
+	size_t count = 0;
+        /* listGains isn't actually rtlsdr_get_tuner_gains() - it returns the
+         * types gains you can set ("TUNER"), not the possible gain values!
+	char **gains = SoapySDRDevice_listGains(dev, SOAPY_SDR_RX, 0, &count);
+
 	if (count <= 0) {
 		return 0;
 	}
-	gains = malloc(sizeof(int) * count);
-	count = rtlsdr_get_tuner_gains(dev, gains);
-	nearest = gains[0];
-	for (i=0; i<count; i++) {
+
+	fprintf(stderr, "Rx gains: ");
+	nearest = atoi(gains[0]);
+
+	for (size_t i = 0; i < count; i++) {
+		fprintf(stderr, "%s, ", gains[i]);
+
 		err1 = abs(target_gain - nearest);
-		err2 = abs(target_gain - gains[i]);
+		err2 = abs(target_gain - atoi(gains[i]));
 		if (err2 < err1) {
-			nearest = gains[i];
+			nearest = atoi(gains[i]);
 		}
 	}
-	free(gains);
+
+	fprintf(stderr, "\n");
+
+	SoapySDRStrings_clear(&gains, count);
+        */
+        // TODO: get possible gains
+        nearest = target_gain;
+
 	return nearest;
 }
 
-int verbose_set_frequency(rtlsdr_dev_t *dev, uint32_t frequency)
+int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 {
 	int r;
-	r = rtlsdr_set_center_freq(dev, frequency);
-	if (r < 0) {
+
+	SoapySDRKwargs args = {};
+	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, 0, (double)frequency, &args);
+	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set center freq.\n");
 	} else {
 		fprintf(stderr, "Tuned to %u Hz.\n", frequency);
@@ -148,11 +166,11 @@ int verbose_set_frequency(rtlsdr_dev_t *dev, uint32_t frequency)
 	return r;
 }
 
-int verbose_set_sample_rate(rtlsdr_dev_t *dev, uint32_t samp_rate)
+int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate)
 {
 	int r;
-	r = rtlsdr_set_sample_rate(dev, samp_rate);
-	if (r < 0) {
+	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, 0, (double)samp_rate);
+	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
 	} else {
 		fprintf(stderr, "Sampling at %u S/s.\n", samp_rate);
@@ -160,15 +178,15 @@ int verbose_set_sample_rate(rtlsdr_dev_t *dev, uint32_t samp_rate)
 	return r;
 }
 
-int verbose_set_bandwidth(rtlsdr_dev_t *dev, uint32_t bandwidth)
+int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth)
 {
 	int r;
+	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, 0, (double)bandwidth);
 	uint32_t applied_bw = 0;
-	/* r = rtlsdr_set_tuner_bandwidth(dev, bandwidth); */
-	r = rtlsdr_set_and_get_tuner_bandwidth(dev, bandwidth, &applied_bw, 1 /* =apply_bw */);
-	if (r < 0) {
+	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set bandwidth.\n");
 	} else if (bandwidth > 0) {
+		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, 0);
 		if (applied_bw)
 			fprintf(stderr, "Bandwidth parameter %u Hz resulted in %u Hz.\n", bandwidth, applied_bw);
 		else
@@ -179,33 +197,48 @@ int verbose_set_bandwidth(rtlsdr_dev_t *dev, uint32_t bandwidth)
 	return r;
 }
 
-int verbose_direct_sampling(rtlsdr_dev_t *dev, int on)
+int verbose_direct_sampling(SoapySDRDevice *dev, int on)
 {
 	int r;
-	r = rtlsdr_set_direct_sampling(dev, on);
-	if (r != 0) {
+	char *value, *set_value;
+	if (on == 0)
+		value = "0";
+	else if (on == 1)
+		value = "1";
+	else if (on == 2)
+		value = "2";
+	else
+		return -1;
+	SoapySDRDevice_writeSetting(dev, "direct_samp", value);
+	set_value = SoapySDRDevice_readSetting(dev, "direct_samp");
+
+	if (set_value == NULL) {
 		fprintf(stderr, "WARNING: Failed to set direct sampling mode.\n");
 		return r;
 	}
-	if (on == 0) {
+	if (atoi(set_value) == 0) {
 		fprintf(stderr, "Direct sampling mode disabled.\n");}
-	if (on == 1) {
+	if (atoi(set_value) == 1) {
 		fprintf(stderr, "Enabled direct sampling mode, input 1/I.\n");}
-	if (on == 2) {
+	if (atoi(set_value) == 2) {
 		fprintf(stderr, "Enabled direct sampling mode, input 2/Q.\n");}
 	return r;
 }
 
-int verbose_offset_tuning(rtlsdr_dev_t *dev)
+int verbose_offset_tuning(SoapySDRDevice *dev)
 {
-	int r;
-	r = rtlsdr_set_offset_tuning(dev, 1);
-	if (r != 0) {
+	int r = 0;
+	SoapySDRDevice_writeSetting(dev, "offset_tune", "true");
+	char *set_value = SoapySDRDevice_readSetting(dev, "offset_tune");
+
+	if (strcmp(set_value, "true") != 0) {
+		/* TODO: detection of failure modes
 		if ( r == -2 )
 			fprintf(stderr, "WARNING: Failed to set offset tuning: tuner doesn't support offset tuning!\n");
 		else if ( r == -3 )
 			fprintf(stderr, "WARNING: Failed to set offset tuning: direct sampling not combinable with offset tuning!\n");
 		else
+		*/
 			fprintf(stderr, "WARNING: Failed to set offset tuning.\n");
 	} else {
 		fprintf(stderr, "Offset tuning mode enabled.\n");
@@ -213,27 +246,38 @@ int verbose_offset_tuning(rtlsdr_dev_t *dev)
 	return r;
 }
 
-int verbose_auto_gain(rtlsdr_dev_t *dev)
+int verbose_gain_set(SoapySDRDevice *dev, int gain);
+int verbose_auto_gain(SoapySDRDevice *dev)
 {
 	int r;
+	r = -1;
+	/* TODO: not bridged, https://github.com/pothosware/SoapyRTLSDR/search?utf8=✓&q=rtlsdr_set_tuner_gain_mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 0);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
 	} else {
 		fprintf(stderr, "Tuner gain set to automatic.\n");
 	}
+	*/
+	// For now, set 40 dB, high
+	// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
+	verbose_gain_set(dev, 400);
+
 	return r;
 }
 
-int verbose_gain_set(rtlsdr_dev_t *dev, int gain)
+int verbose_gain_set(SoapySDRDevice *dev, int gain)
 {
 	int r;
+	/*
 	r = rtlsdr_set_tuner_gain_mode(dev, 1);
 	if (r < 0) {
 		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
 		return r;
 	}
-	r = rtlsdr_set_tuner_gain(dev, gain);
+	*/
+	double value = gain / 10.0; // tenths of dB -> dB
+	r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
 	} else {
@@ -242,13 +286,13 @@ int verbose_gain_set(rtlsdr_dev_t *dev, int gain)
 	return r;
 }
 
-int verbose_ppm_set(rtlsdr_dev_t *dev, int ppm_error)
+int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error)
 {
 	int r;
 	if (ppm_error == 0) {
 		return 0;}
-	r = rtlsdr_set_freq_correction(dev, ppm_error);
-	if (r < 0) {
+	r = (int)SoapySDRDevice_setFrequencyComponent(dev, SOAPY_SDR_RX, 0, "CORR", (double)ppm_error, NULL);
+	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set ppm error.\n");
 	} else {
 		fprintf(stderr, "Tuner error set to %i ppm.\n", ppm_error);
@@ -256,31 +300,131 @@ int verbose_ppm_set(rtlsdr_dev_t *dev, int ppm_error)
 	return r;
 }
 
-int verbose_reset_buffer(rtlsdr_dev_t *dev)
+int verbose_reset_buffer(SoapySDRDevice *dev)
 {
 	int r;
+	r = -1;
+	/* TODO: not bridged
 	r = rtlsdr_reset_buffer(dev);
 	if (r < 0) {
 		fprintf(stderr, "WARNING: Failed to reset buffers.\n");}
+		*/
 	return r;
 }
 
-int verbose_device_search(char *s)
+static void show_device_info(SoapySDRDevice *dev)
 {
-	int i, device_count, device, offset;
-	char *s2;
-	char vendor[256], product[256], serial[256];
-	device_count = rtlsdr_get_device_count();
-	if (!device_count) {
-		fprintf(stderr, "No supported devices found.\n");
-		return -1;
-	}
-	fprintf(stderr, "Found %d device(s):\n", device_count);
-	for (i = 0; i < device_count; i++) {
-		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
+	size_t len = 0, i = 0;
+	char **antennas = NULL;
+	char **gains = NULL;
+	char **frequencies = NULL;
+	double *rates = NULL;
+	double *bandwidths = NULL;
+	SoapySDRKwargs args;
+	char *hwkey = NULL;
+
+	int direction = SOAPY_SDR_RX;
+	int channel = 0;
+
+	hwkey = SoapySDRDevice_getHardwareKey(dev);
+	fprintf(stderr, "Using device %s: ", hwkey);
+
+	args = SoapySDRDevice_getHardwareInfo(dev);
+	for (i = 0; i < args.size; ++i) {
+		fprintf(stderr, "%s=%s ", args.keys[i], args.vals[i]);
 	}
 	fprintf(stderr, "\n");
+
+	antennas = SoapySDRDevice_listAntennas(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu antenna(s): ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", antennas[i]);
+	}
+	fprintf(stderr, "\n");
+
+
+	gains = SoapySDRDevice_listGains(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu gain(s): ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", gains[i]);
+	}
+	fprintf(stderr, "\n");
+
+	frequencies = SoapySDRDevice_listFrequencies(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu frequencies: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%s ", frequencies[i]);
+	}
+	fprintf(stderr, "\n");
+
+	rates = SoapySDRDevice_listSampleRates(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu sample rates: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%.0f ", rates[i]);
+	}
+	fprintf(stderr, "\n");
+
+	bandwidths = SoapySDRDevice_listBandwidths(dev, direction, channel, &len);
+	fprintf(stderr, "Found %zu bandwidths: ", len);
+	for (i = 0; i < len; ++i) {
+		fprintf(stderr, "%.0f ", bandwidths[i]);
+	}
+	fprintf(stderr, "\n");
+}
+
+SoapySDRDevice *verbose_device_search(char *s)
+{
+	size_t device_count = 0;
+	size_t i = 0;
+	int device, offset;
+	char *s2;
+	char vendor[256], product[256], serial[256];
+	SoapySDRDevice *dev = NULL;
+
+	SoapySDRKwargs args = {}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
+	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
+	if (!device_count) {
+		fprintf(stderr, "No supported devices found.\n");
+		return NULL;
+	}
+	fprintf(stderr, "Found %zu device(s):\n", device_count);
+
+	for (i = 0; i < device_count; i++) {
+		//rtlsdr_get_device_usb_strings(i, vendor, product, serial);
+		//fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
+		fprintf(stderr, "  %zu: ", i);
+		for (size_t j = 0; j < results[i].size; j++)
+		{
+			fprintf(stderr, "%s=%s, ", results[i].keys[j], results[i].vals[j]);
+			// TODO: save and match on keys?
+		}
+		fprintf(stderr, "\n");
+	}
+	fprintf(stderr, "\n");
+
+	fprintf(stderr, "verbose_device_search(%s)\n", s);
+	if (s) {
+		// Exact serial match TODO: prefix, suffix
+		// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
+		//SoapySDRKwargs_set(&args, "serial", s);
+
+		SoapySDRKwargs_set(&args, "driver", "rtlsdr");
+		SoapySDRKwargs_set(&args, "rtl", s);
+	}
+	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
+
+	dev = SoapySDRDevice_make(&args);
+	if (!dev) return NULL;
+
+	show_device_info(dev);
+
+	return dev;
+
+
+	// TODO: device search matching by properties above (key/value pairs), right now only returning zeroth device
+	// example device:
+	//   0: available=Yes, driver=rtlsdr, label=Generic RTL2832U OEM :: 3, manufacturer=Realtek, product=RTL2838UHIDIR, rtl=0, serial=3, tuner=Rafael Micro R820T,
+#if 0
 	/* does string look like raw id number */
 	device = (int)strtol(s, &s2, 0);
 	if (s2[0] == '\0' && device >= 0 && device < device_count) {
@@ -322,7 +466,37 @@ int verbose_device_search(char *s)
 		return device;
 	}
 	fprintf(stderr, "No matching devices found.\n");
-	return -1;
+#endif
 }
+
+int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len)
+{
+	void *buffs[] = {buf};
+	int flags = 0;
+	long long timeNs = 0;
+	long timeoutNs = 1000000;
+	int bytes_read, r;
+
+	r = SoapySDRDevice_readStream(dev, stream, buffs, len, &flags, &timeNs, timeoutNs);
+
+	//fprintf(stderr, "readStream ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+	if (r >= 0) {
+		// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+		bytes_read = r * 2;
+
+		// Convert CS8 to CU8, back to RTL-SDR native format!
+		// TODO: see https://github.com/pothosware/SoapyRTLSDR/issues/15
+		// TODO: or use "direct buffer access API"?
+		// TODO: or2, remove +127 here and -127 in rtlsdr_callback! back and forth too many times (-127 in SoapyRTLSDR)
+		for(int i = 0; i < bytes_read; ++i) {
+			buf[i] += 127;
+		}
+		return bytes_read;
+	} else {
+		// error code
+		return r;
+	}
+}
+
 
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab

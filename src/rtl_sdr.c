@@ -31,7 +31,9 @@
 #include "getopt/getopt.h"
 #endif
 
-#include "rtl-sdr.h"
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
+
 #include "convenience/convenience.h"
 
 #define DEFAULT_SAMPLE_RATE		2048000
@@ -41,7 +43,8 @@
 
 static int do_exit = 0;
 static uint32_t bytes_to_read = 0;
-static rtlsdr_dev_t *dev = NULL;
+static SoapySDRDevice *dev = NULL;
+static SoapySDRStream *stream = NULL;
 
 void usage(void)
 {
@@ -66,7 +69,7 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		rtlsdr_cancel_async(dev);
+		SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 		return TRUE;
 	}
 	return FALSE;
@@ -76,31 +79,9 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	rtlsdr_cancel_async(dev);
+	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 }
 #endif
-
-static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
-{
-	if (ctx) {
-		if (do_exit)
-			return;
-
-		if ((bytes_to_read > 0) && (bytes_to_read < len)) {
-			len = bytes_to_read;
-			do_exit = 1;
-			rtlsdr_cancel_async(dev);
-		}
-
-		if (fwrite(buf, 1, len, (FILE*)ctx) != len) {
-			fprintf(stderr, "Short write, samples lost, exiting!\n");
-			rtlsdr_cancel_async(dev);
-		}
-
-		if (bytes_to_read > 0)
-			bytes_to_read -= len;
-	}
-}
 
 int main(int argc, char **argv)
 {
@@ -115,8 +96,7 @@ int main(int argc, char **argv)
 	int sync_mode = 0;
 	FILE *file;
 	uint8_t *buffer;
-	int dev_index = 0;
-	int dev_given = 0;
+	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
@@ -124,8 +104,7 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:S")) != -1) {
 		switch (opt) {
 		case 'd':
-			dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dev_query = optarg;
 			break;
 		case 'f':
 			frequency = (uint32_t)atofs(optarg);
@@ -173,17 +152,10 @@ int main(int argc, char **argv)
 
 	buffer = malloc(out_block_size * sizeof(uint8_t));
 
-	if (!dev_given) {
-		dev_index = verbose_device_search("0");
-	}
+	dev = verbose_device_search(dev_query);
 
-	if (dev_index < 0) {
-		exit(1);
-	}
-
-	r = rtlsdr_open(&dev, (uint32_t)dev_index);
-	if (r < 0) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
+	if (!dev) {
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
 #ifndef _WIN32
@@ -230,14 +202,24 @@ int main(int argc, char **argv)
 	/* Reset endpoint before we start reading from it (mandatory) */
 	verbose_reset_buffer(dev);
 
-	if (sync_mode) {
+	if (true || sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
+		SoapySDRKwargs args = {};
+		if (SoapySDRDevice_setupStream(dev, &stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args) != 0) {
+			fprintf(stderr, "Failed to setup stream\n");
+			exit(1);
+		}
+		if (SoapySDRDevice_activateStream(dev, stream, 0, 0, 0) != 0) {
+			fprintf(stderr, "Failed to activate stream\n");
+                        exit(1);
+                }
 		while (!do_exit) {
-			r = rtlsdr_read_sync(dev, buffer, out_block_size, &n_read);
+			r = read_samples_cu8(dev, stream, buffer, out_block_size);
 			if (r < 0) {
 				fprintf(stderr, "WARNING: sync read failed.\n");
 				break;
 			}
+			n_read = r;
 
 			if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
 				n_read = bytes_to_read;
@@ -249,18 +231,17 @@ int main(int argc, char **argv)
 				break;
 			}
 
+                        // TODO: hmm.. n_read 8192, but out_block_size (16 * 16384) is much larger TODO: loop? or accept 8192? rtl_fm ok with it
+                        /*
 			if ((uint32_t)n_read < out_block_size) {
-				fprintf(stderr, "Short read, samples lost, exiting!\n");
+				fprintf(stderr, "Short read, samples lost, exiting! (%d < %d)\n", n_read, out_block_size);
 				break;
 			}
+                        */
 
 			if (bytes_to_read > 0)
 				bytes_to_read -= n_read;
 		}
-	} else {
-		fprintf(stderr, "Reading samples in async mode...\n");
-		r = rtlsdr_read_async(dev, rtlsdr_callback, (void *)file,
-				      0, out_block_size);
 	}
 
 	if (do_exit)
@@ -271,7 +252,7 @@ int main(int argc, char **argv)
 	if (file != stdout)
 		fclose(file);
 
-	rtlsdr_close(dev);
+	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 	free (buffer);
 out:
 	return r >= 0 ? r : -r;

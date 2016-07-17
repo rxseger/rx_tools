@@ -61,9 +61,10 @@
 
 #include <math.h>
 #include <pthread.h>
-#include <libusb.h>
 
-#include "rtl-sdr.h"
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
+
 #include "convenience/convenience.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -76,7 +77,8 @@
 #define MINIMUM_RATE			1000000
 
 static volatile int do_exit = 0;
-static rtlsdr_dev_t *dev = NULL;
+static SoapySDRDevice *dev = NULL;
+static SoapySDRStream *stream = NULL;
 FILE *file;
 
 int16_t* Sinewave;
@@ -528,14 +530,18 @@ void frequency_range(char *arg, double crop)
 	fprintf(stderr, "Buffer size: %i bytes (%0.2fms)\n", buf_len, 1000 * 0.5 * (float)buf_len / (float)bw_used);
 }
 
-void retune(rtlsdr_dev_t *d, int freq)
+void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 {
 	uint8_t dump[BUFFER_DUMP];
 	int n_read;
-	rtlsdr_set_center_freq(d, (uint32_t)freq);
+
+	SoapySDRKwargs args = {};
+	SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
+	// TODO: check if failed to set frequency?
+
 	/* wait for settling and flush buffer */
 	usleep(5000);
-	rtlsdr_read_sync(d, &dump, BUFFER_DUMP, &n_read);
+	n_read = read_samples_cu8(d, s, dump, BUFFER_DUMP/2);
 	if (n_read != BUFFER_DUMP) {
 		fprintf(stderr, "Error: bad retune.\n");}
 }
@@ -640,12 +646,15 @@ void scanner(void)
 		if (do_exit >= 2)
 			{return;}
 		ts = &tunes[i];
-		f = (int)rtlsdr_get_center_freq(dev);
+		f = (int32_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
+
 		if (f != ts->freq) {
-			retune(dev, ts->freq);}
-		rtlsdr_read_sync(dev, ts->buf8, buf_len, &n_read);
+			retune(dev, stream, ts->freq);}
+		n_read = read_samples_cu8(dev, stream, ts->buf8, buf_len);
+		/* TODO: n_read=12288 (=6144*2) but buf_len=16384?
 		if (n_read != buf_len) {
-			fprintf(stderr, "Error: dropped samples.\n");}
+			fprintf(stderr, "Error: dropped samples. (n_read=%d, buf_len=%d)\n", n_read, buf_len);}
+		*/
 		/* rms */
 		if (bin_len == 1) {
 			rms_power(ts);
@@ -762,8 +771,7 @@ int main(int argc, char **argv)
 	int i, length, r, opt, wb_mode = 0;
 	int f_set = 0;
 	int gain = AUTO_GAIN; // tenths of a dB
-	int dev_index = 0;
-	int dev_given = 0;
+	char *dev_query = NULL;
 	int ppm_error = 0;
 	int interval = 10;
 	int fft_threads = 1;
@@ -788,8 +796,7 @@ int main(int argc, char **argv)
 			f_set = 1;
 			break;
 		case 'd':
-			dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dev_query = optarg;
 			break;
 		case 'g':
 			gain = (int)(atof(optarg) * 10);
@@ -882,19 +889,20 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
-	if (!dev_given) {
-		dev_index = verbose_device_search("0");
-	}
+	dev = verbose_device_search(dev_query);
 
-	if (dev_index < 0) {
+	if (!dev) {
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
 
-	r = rtlsdr_open(&dev, (uint32_t)dev_index);
-	if (r < 0) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
+	SoapySDRKwargs args = {};
+	if (SoapySDRDevice_setupStream(dev, &stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args) != 0) {
+		fprintf(stderr, "setupStream fail\n");
 		exit(1);
 	}
+	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
+
 #ifndef _WIN32
 	sigact.sa_handler = sighandler;
 	sigemptyset(&sigact.sa_mask);
@@ -943,7 +951,7 @@ int main(int argc, char **argv)
 	verbose_reset_buffer(dev);
 
 	/* actually do stuff */
-	rtlsdr_set_sample_rate(dev, (uint32_t)tunes[0].rate);
+	SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, 0, (double)tunes[0].rate);
 	sine_table(tunes[0].bin_e);
 	next_tick = time(NULL) + interval;
 	if (exit_time) {
@@ -985,7 +993,7 @@ int main(int argc, char **argv)
 	if (file != stdout) {
 		fclose(file);}
 
-	rtlsdr_close(dev);
+	SoapySDRDevice_unmake(dev);
 	free(fft_buf);
 	free(window_coefs);
 	//for (i=0; i<tune_count; i++) {

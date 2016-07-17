@@ -72,7 +72,9 @@
 #include <math.h>
 #include <pthread.h>
 
-#include "rtl-sdr.h"
+#include <SoapySDR/Device.h>
+#include <SoapySDR/Formats.h>
+
 #include "convenience/convenience.h"
 
 #define DEFAULT_SAMPLE_RATE		24000
@@ -103,8 +105,9 @@ struct dongle_state
 {
 	int	  exit_flag;
 	pthread_t thread;
-	rtlsdr_dev_t *dev;
-	int	  dev_index;
+	SoapySDRDevice *dev;
+	SoapySDRStream *stream;
+	char	*dev_query;
 	uint32_t freq;
 	uint32_t rate;
 	uint32_t bandwidth;
@@ -256,7 +259,7 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		rtlsdr_cancel_async(dongle.dev);
+		SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 		return TRUE;
 	}
 	return FALSE;
@@ -266,7 +269,7 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	rtlsdr_cancel_async(dongle.dev);
+	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 }
 #endif
 
@@ -896,7 +899,28 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
-	rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
+	SoapySDRKwargs args = {};
+	char *e; // TODO: api changes to int in 0.5
+	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args);
+	if (e != 0) {
+		fprintf(stderr, "setupStream fail: %s\n", e);
+	}
+
+	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
+	uint8_t buf[MAXIMUM_BUF_LENGTH];
+
+	int r = 0;
+	do
+	{
+		r = read_samples_cu8(s->dev, s->stream, buf, MAXIMUM_BUF_LENGTH);
+
+		if (r >= 0) {
+			s->buf_len = r;
+			rtlsdr_callback(buf, s->buf_len, s);
+		}
+	} while(r > 0);
+
+	//rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
 	return 0;
 }
 
@@ -1024,7 +1048,7 @@ static void *controller_thread_fn(void *arg)
 		/* hacky hopping */
 		s->freq_now = (s->freq_now + 1) % s->freq_len;
 		optimal_settings(s->freqs[s->freq_now], demod.rate_in);
-		rtlsdr_set_center_freq(dongle.dev, dongle.freq);
+		SoapySDRDevice_setFrequency(dongle.dev, SOAPY_SDR_RX, 0, (double)dongle.freq, NULL);
 		dongle.mute = BUFFER_DUMP;
 	}
 	return 0;
@@ -1157,7 +1181,6 @@ int main(int argc, char **argv)
 	struct sigaction sigact;
 #endif
 	int r, opt;
-	int dev_given = 0;
 	int custom_ppm = 0;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
@@ -1169,8 +1192,7 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
 		switch (opt) {
 		case 'd':
-			dongle.dev_index = verbose_device_search(optarg);
-			dev_given = 1;
+			dongle.dev_query = optarg;
 			break;
 		case 'f':
 			if (controller.freq_len >= FREQUENCIES_LIMIT) {
@@ -1317,17 +1339,10 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
-	if (!dev_given) {
-		dongle.dev_index = verbose_device_search("0");
-	}
+	dongle.dev = verbose_device_search(dongle.dev_query);
 
-	if (dongle.dev_index < 0) {
-		exit(1);
-	}
-
-	r = rtlsdr_open(&dongle.dev, (uint32_t)dongle.dev_index);
-	if (r < 0) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dongle.dev_index);
+	if (!dongle.dev) {
+		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
 		exit(1);
 	}
 #ifndef _WIN32
@@ -1357,7 +1372,7 @@ int main(int argc, char **argv)
 		verbose_gain_set(dongle.dev, dongle.gain);
 	}
 
-	rtlsdr_set_agc_mode(dongle.dev, rtlagc);
+	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);
 
 	verbose_ppm_set(dongle.dev, dongle.ppm_error);
 
@@ -1366,14 +1381,12 @@ int main(int argc, char **argv)
 	if (verbosity && dongle.bandwidth)
 	{
 		int r;
-		uint32_t in_bw, out_bw, last_bw = 0;
 		fprintf(stderr, "Supported bandwidth values in kHz:\n");
-		for ( in_bw = 1; in_bw < 3200; ++in_bw )
-		{
-			r = rtlsdr_set_and_get_tuner_bandwidth(dongle.dev, in_bw*1000, &out_bw, 0 /* =apply_bw */);
-			if ( r == 0 && out_bw != 0 && ( out_bw != last_bw || in_bw == 1 ) )
-				fprintf(stderr, "%s%.1f", (in_bw==1 ? "" : ", "), out_bw/1000.0 );
-			last_bw = out_bw;
+		size_t bw_count = 0;
+		// TODO: well, this is deprecated by getBandwidthRange? SoapySDRRange
+		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, 0, &bw_count);
+		for (size_t k = 0; k < bw_count; ++k) {
+			fprintf(stderr, "%.1f ", bandwidths[k]);
 		}
 		fprintf(stderr,"\n");
 	}
@@ -1411,7 +1424,7 @@ int main(int argc, char **argv)
 	else {
 		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);}
 
-	rtlsdr_cancel_async(dongle.dev);
+	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 	pthread_join(dongle.thread, NULL);
 	safe_cond_signal(&demod.ready, &demod.ready_m);
 	pthread_join(demod.thread, NULL);
@@ -1428,7 +1441,7 @@ int main(int argc, char **argv)
 	if (output.file != stdout) {
 		fclose(output.file);}
 
-	rtlsdr_close(dongle.dev);
+	SoapySDRDevice_unmake(dongle.dev);
 	return r >= 0 ? r : -r;
 }
 

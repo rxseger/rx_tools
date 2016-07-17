@@ -50,108 +50,119 @@ double atofp(char *s);
 /*!
  * Find nearest supported gain
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param target_gain in tenths of a dB
  * \return 0 on success
  */
 
-int nearest_gain(rtlsdr_dev_t *dev, int target_gain);
+int nearest_gain(SoapySDRDevice *dev, int target_gain);
 
 /*!
  * Set device frequency and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param frequency in Hz
  * \return 0 on success
  */
 
-int verbose_set_frequency(rtlsdr_dev_t *dev, uint32_t frequency);
+int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency);
 
 /*!
  * Set device sample rate and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param samp_rate in samples/second
  * \return 0 on success
  */
 
-int verbose_set_sample_rate(rtlsdr_dev_t *dev, uint32_t samp_rate);
+int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate);
 
 /*!
  * Set device bandwidth and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param frequency in Hz
  * \return 0 on success
  */
 
-int verbose_set_bandwidth(rtlsdr_dev_t *dev, uint32_t bandwidth);
+int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth);
 
 
 /*!
  * Enable or disable the direct sampling mode and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param on 0 means disabled, 1 I-ADC input enabled, 2 Q-ADC input enabled
  * \return 0 on success
  */
 
-int verbose_direct_sampling(rtlsdr_dev_t *dev, int on);
+int verbose_direct_sampling(SoapySDRDevice *dev, int on);
 
 /*!
  * Enable offset tuning and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \return 0 on success
  */
 
-int verbose_offset_tuning(rtlsdr_dev_t *dev);
+int verbose_offset_tuning(SoapySDRDevice *dev);
 
 /*!
  * Enable auto gain and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \return 0 on success
  */
 
-int verbose_auto_gain(rtlsdr_dev_t *dev);
+int verbose_auto_gain(SoapySDRDevice *dev);
 
 /*!
  * Set tuner gain and report status on stderr
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param gain in tenths of a dB
  * \return 0 on success
  */
 
-int verbose_gain_set(rtlsdr_dev_t *dev, int gain);
+int verbose_gain_set(SoapySDRDevice *dev, int gain);
 
 /*!
  * Set the frequency correction value for the device and report status on stderr.
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \param ppm_error correction value in parts per million (ppm)
  * \return 0 on success
  */
 
-int verbose_ppm_set(rtlsdr_dev_t *dev, int ppm_error);
+int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error);
 
 /*!
  * Reset buffer
  *
- * \param dev the device handle given by rtlsdr_open()
+ * \param dev the device handle
  * \return 0 on success
  */
 
-int verbose_reset_buffer(rtlsdr_dev_t *dev);
+int verbose_reset_buffer(SoapySDRDevice *dev);
 
 /*!
  * Find the closest matching device.
  *
  * \param s a string to be parsed
- * \return dev_index int, -1 on error
+ * \return dev device, NULL on error
  */
 
-int verbose_device_search(char *s);
+SoapySDRDevice *verbose_device_search(char *s);
+
+/*!
+ * Read samples as Complex Unsigned 8-bit (CU8) pairs
+ *
+ * \param dev the device handle
+ * \param stream the stream handle
+ * \param buf buffer to read into
+ * \param len maximum length of buffer
+ * \return number of bytes read, or negative if an error
+ */
+int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len);
 
 #endif /*__CONVENIENCE_H*/
