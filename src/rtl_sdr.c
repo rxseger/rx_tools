@@ -42,7 +42,7 @@
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
 static int do_exit = 0;
-static uint32_t bytes_to_read = 0;
+static uint32_t samples_to_read = 0;
 static SoapySDRDevice *dev = NULL;
 static SoapySDRStream *stream = NULL;
 
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	int ppm_error = 0;
 	int sync_mode = 0;
 	FILE *file;
-	uint8_t *buffer;
+	int16_t *buffer;
 	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
@@ -122,7 +122,8 @@ int main(int argc, char **argv)
 			out_block_size = (uint32_t)atof(optarg);
 			break;
 		case 'n':
-			bytes_to_read = (uint32_t)atof(optarg) * 2;
+			// half of I/Q pair count (double for one each of I and Q)
+			samples_to_read = (uint32_t)atof(optarg) * 2;
 			break;
 		case 'S':
 			sync_mode = 1;
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
 		out_block_size = DEFAULT_BUF_LENGTH;
 	}
 
-	buffer = malloc(out_block_size * sizeof(uint8_t));
+	buffer = malloc(out_block_size * sizeof(int16_t));
 
 	r = verbose_device_search(dev_query, &dev, &stream);
 
@@ -210,19 +211,32 @@ int main(int argc, char **argv)
                         exit(1);
                 }
 		while (!do_exit) {
-			r = read_samples_cu8(dev, stream, buffer, out_block_size);
-			if (r < 0) {
-				fprintf(stderr, "WARNING: sync read failed.\n");
+			void *buffs[] = {buffer};
+			int flags = 0;
+			long long timeNs = 0;
+			long timeoutNs = 1000000;
+			int n_read = 0, r;
+
+			r = SoapySDRDevice_readStream(dev, stream, buffs, out_block_size, &flags, &timeNs, timeoutNs);
+
+			//fprintf(stderr, "readStream ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
+			if (r >= 0) {
+				// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
+				n_read = r * 2;
+			} else {
+				// TODO: fix sometimes returns r=-4 SOAPY_SDR_OVERFLOW why?
+				// see error codes https://github.com/pothosware/SoapySDR/blob/master/include/SoapySDR/Errors.h
+				fprintf(stderr, "WARNING: sync read failed. %d\n", r);
 				break;
 			}
-			n_read = r;
 
-			if ((bytes_to_read > 0) && (bytes_to_read < (uint32_t)n_read)) {
-				n_read = bytes_to_read;
+			if ((samples_to_read > 0) && (samples_to_read < (uint32_t)n_read)) {
+				n_read = samples_to_read;
 				do_exit = 1;
 			}
 
-			if (fwrite(buffer, 1, n_read, file) != (size_t)n_read) {
+			// XXX warning: incompatible change! Writes output in CS16, but rtl_sdr is CU8 TODO: select different output formats
+			if (fwrite(buffer, sizeof(int16_t), n_read, file) != (size_t)n_read) {
 				fprintf(stderr, "Short write, samples lost, exiting!\n");
 				break;
 			}
@@ -235,8 +249,8 @@ int main(int argc, char **argv)
 			}
                         */
 
-			if (bytes_to_read > 0)
-				bytes_to_read -= n_read;
+			if (samples_to_read > 0)
+				samples_to_read -= n_read;
 		}
 	}
 
