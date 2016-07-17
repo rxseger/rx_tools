@@ -875,7 +875,7 @@ static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 		return;}
 	if (s->mute) {
 		for (i=0; i<s->mute; i++) {
-			buf[i] = 127;}
+			buf[i] = 0;}
 		s->mute = 0;
 	}
 	/* 1st: convert to 16 bit - to allow easier calculation of DC */
