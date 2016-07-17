@@ -491,9 +491,11 @@ int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, 
 		for(int i = 0; i < bytes_read; ++i) {
 			buf[i] += 127;
 		}
+		return bytes_read;
+	} else {
+		// error code
+		return r;
 	}
-
-	return bytes_read;
 }
 
 
