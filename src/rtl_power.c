@@ -102,7 +102,7 @@ struct tuning_state
 	//pthread_rwlock_t avg_lock;
 	//pthread_mutex_t avg_mutex;
 	/* having the iq buffer here is wasteful, but will avoid contention */
-	int16_t *buf16;
+	uint8_t *buf8;
 	int buf_len;
 	//int *comp_fir;
 	//pthread_rwlock_t buf_lock;
@@ -402,7 +402,7 @@ void rms_power(struct tuning_state *ts)
 /* for bins between 1MHz and 2MHz */
 {
 	int i, s;
-	int16_t*buf = ts->buf16;
+	uint8_t *buf = ts->buf8;
 	int buf_len = ts->buf_len;
 	long p, t;
 	double dc, err;
@@ -511,8 +511,8 @@ void frequency_range(char *arg, double crop)
 		for (j=0; j<(1<<bin_e); j++) {
 			ts->avg[j] = 0L;
 		}
-		ts->buf16 = (int16_t*)malloc(buf_len * sizeof(int16_t));
-		if (!ts->buf16) {
+		ts->buf8 = (uint8_t*)malloc(buf_len * sizeof(uint8_t));
+		if (!ts->buf8) {
 			fprintf(stderr, "Error: malloc.\n");
 			exit(1);
 		}
@@ -532,7 +532,7 @@ void frequency_range(char *arg, double crop)
 
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 {
-	int16_t dump[BUFFER_DUMP];
+	uint8_t dump[BUFFER_DUMP];
 	int n_read;
 
 	SoapySDRKwargs args = {};
@@ -541,7 +541,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 
 	/* wait for settling and flush buffer */
 	usleep(5000);
-	n_read = read_samples_cs16(d, s, dump, BUFFER_DUMP/2);
+	n_read = read_samples_cu8(d, s, dump, BUFFER_DUMP/2);
 	if (n_read != BUFFER_DUMP) {
 		fprintf(stderr, "Error: bad retune.\n");}
 }
@@ -650,7 +650,7 @@ void scanner(void)
 
 		if (f != ts->freq) {
 			retune(dev, stream, ts->freq);}
-		n_read = read_samples_cs16(dev, stream, ts->buf16, buf_len);
+		n_read = read_samples_cu8(dev, stream, ts->buf8, buf_len);
 		/* TODO: n_read=12288 (=6144*2) but buf_len=16384?
 		if (n_read != buf_len) {
 			fprintf(stderr, "Error: dropped samples. (n_read=%d, buf_len=%d)\n", n_read, buf_len);}
@@ -662,8 +662,7 @@ void scanner(void)
 		}
 		/* prep for fft */
 		for (j=0; j<buf_len; j++) {
-			//fft_buf[j] = (int16_t)ts->buf8[j] - 127;
-			fft_buf[j] = ts->buf16[j]; // already in CS16 format, no need to convert to CU8 TODO: remove redundant copy? but contention?
+			fft_buf[j] = (int16_t)ts->buf8[j] - 127;
 		}
 		ds = ts->downsample;
 		ds_p = ts->downsample_passes;

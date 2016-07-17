@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	int ppm_error = 0;
 	int sync_mode = 0;
 	FILE *file;
-	int16_t *buffer;
+	uint8_t *buffer;
 	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 		out_block_size = DEFAULT_BUF_LENGTH;
 	}
 
-	buffer = malloc(out_block_size * sizeof(int16_t));
+	buffer = malloc(out_block_size * sizeof(uint8_t));
 
 	r = verbose_device_search(dev_query, &dev, &stream);
 
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
                         exit(1);
                 }
 		while (!do_exit) {
-			r = read_samples_cs16(dev, stream, buffer, out_block_size);
+			r = read_samples_cu8(dev, stream, buffer, out_block_size);
 			if (r < 0) {
 				fprintf(stderr, "WARNING: sync read failed.\n");
 				break;
@@ -222,7 +222,6 @@ int main(int argc, char **argv)
 				do_exit = 1;
 			}
 
-			// TODO: XXX: problem: reading as CS16, but rtl_sdr compatibility expects CU8 output! convert? behind a flag?
 			if (fwrite(buffer, 1, n_read, file) != (size_t)n_read) {
 				fprintf(stderr, "Short write, samples lost, exiting!\n");
 				break;
