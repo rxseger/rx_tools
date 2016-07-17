@@ -1050,6 +1050,7 @@ static void *controller_thread_fn(void *arg)
 	verbose_set_sample_rate(dongle.dev, dongle.rate);
 	fprintf(stderr, "Output at %u Hz.\n", demod.rate_in/demod.post_downsample);
 
+	SoapySDRKwargs args = {};
 	while (!do_exit) {
 		safe_cond_wait(&s->hop, &s->hop_m);
 		if (s->freq_len <= 1) {
@@ -1057,7 +1058,7 @@ static void *controller_thread_fn(void *arg)
 		/* hacky hopping */
 		s->freq_now = (s->freq_now + 1) % s->freq_len;
 		optimal_settings(s->freqs[s->freq_now], demod.rate_in);
-		SoapySDRDevice_setFrequency(dongle.dev, SOAPY_SDR_RX, 0, (double)dongle.freq, NULL);
+		SoapySDRDevice_setFrequency(dongle.dev, SOAPY_SDR_RX, 0, (double)dongle.freq, &args);
 		dongle.mute = BUFFER_DUMP;
 	}
 	return 0;
