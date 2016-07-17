@@ -435,6 +435,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	}
 
 	// Restore stdout back to stdout
+	fflush(stdout);
 	dup2(tmp_stdout, STDOUT_FILENO);
 
 	*devOut = dev;
