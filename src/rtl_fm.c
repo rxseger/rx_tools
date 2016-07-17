@@ -861,7 +861,9 @@ void full_demod(struct demod_state *d)
 	}
 }
 
-static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
+// buf: buffer
+// len: number of elements in buf
+static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 {
 	int i;
 	struct dongle_state *s = ctx;
@@ -878,7 +880,8 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 	}
 	/* 1st: convert to 16 bit - to allow easier calculation of DC */
 	for (i=0; i<(int)len; i++) {
-		s->buf16[i] = ( (int16_t)buf[i] - 127 );
+		//s->buf16[i] = ( (int16_t)buf[i] - 127 );
+		s->buf16[i] = buf[i]; // no longer needed, already int16_t TODO: remove unneeded copy
 	}
 	/* 2nd: do DC filtering BEFORE up-mixing */
 	if (d->dc_block_raw) {
@@ -890,7 +893,7 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 		/* rotate_90(buf, len); */
 	}
 	pthread_rwlock_wrlock(&d->rw);
-	memcpy(d->lowpassed, s->buf16, 2*len);
+	memcpy(d->lowpassed, s->buf16, len*sizeof(int16_t));
 	d->lp_len = len;
 	pthread_rwlock_unlock(&d->rw);
 	safe_cond_signal(&d->ready, &d->ready_m);
@@ -901,22 +904,27 @@ static void *dongle_thread_fn(void *arg)
 	struct dongle_state *s = arg;
 	SoapySDRKwargs args = {};
 	char *e; // TODO: api changes to int in 0.5
-	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args);
+	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &args);
 	if (e != 0) {
 		fprintf(stderr, "setupStream fail: %s\n", e);
 	}
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
-	uint8_t buf[MAXIMUM_BUF_LENGTH];
+	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(int16_t)); // too big to fit on stack, with 16-bit conversion
+	bzero(buf, MAXIMUM_BUF_LENGTH * sizeof(int16_t));
+	if (!buf) {
+		perror("malloc");
+		exit(1);
+	}
 
 	int r = 0;
 	do
 	{
-		r = read_samples_cu8(s->dev, s->stream, buf, MAXIMUM_BUF_LENGTH);
+		r = read_samples_cs16(s->dev, s->stream, buf, MAXIMUM_BUF_LENGTH);
 
 		if (r >= 0) {
 			s->buf_len = r;
-			rtlsdr_callback(buf, s->buf_len, s);
+			rtlsdr_callback(buf, s->buf_len / sizeof(int16_t), s);
 		}
 	} while(r > 0);
 

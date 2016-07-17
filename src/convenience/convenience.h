@@ -155,14 +155,14 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
 SoapySDRDevice *verbose_device_search(char *s);
 
 /*!
- * Read samples as Complex Unsigned 8-bit (CU8) pairs
+ * Read samples as Complex Signed 16-bit (CS16) pairs
  *
  * \param dev the device handle
  * \param stream the stream handle
  * \param buf buffer to read into
- * \param len maximum length of buffer
+ * \param len maximum number of elements in buf
  * \return number of bytes read, or negative if an error
  */
-int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len);
+int read_samples_cs16(SoapySDRDevice *dev, SoapySDRStream *stream, int16_t *buf, int len);
 
 #endif /*__CONVENIENCE_H*/

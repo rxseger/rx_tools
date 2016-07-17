@@ -469,7 +469,7 @@ SoapySDRDevice *verbose_device_search(char *s)
 #endif
 }
 
-int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, int len)
+int read_samples_cs16(SoapySDRDevice *dev, SoapySDRStream *stream, int16_t *buf, int len)
 {
 	void *buffs[] = {buf};
 	int flags = 0;
@@ -481,16 +481,11 @@ int read_samples_cu8(SoapySDRDevice *dev, SoapySDRStream *stream, uint8_t *buf, 
 
 	//fprintf(stderr, "readStream ret=%d, flags=%d, timeNs=%lld\n", r, flags, timeNs);
 	if (r >= 0) {
-		// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-		bytes_read = r * 2;
+		// r is number of elements read, elements=complex pairs of 16-bits, so buffer length in bytes is twice
+		bytes_read = r * 2 * sizeof(int16_t);
 
-		// Convert CS8 to CU8, back to RTL-SDR native format!
-		// TODO: see https://github.com/pothosware/SoapyRTLSDR/issues/15
-		// TODO: or use "direct buffer access API"?
-		// TODO: or2, remove +127 here and -127 in rtlsdr_callback! back and forth too many times (-127 in SoapyRTLSDR)
-		for(int i = 0; i < bytes_read; ++i) {
-			buf[i] += 127;
-		}
+		// Note: no need to convert CS8 to CU8, back to RTL-SDR native format,
+		// but see https://github.com/pothosware/SoapyRTLSDR/issues/15 for historical reasons
 		return bytes_read;
 	} else {
 		// error code
