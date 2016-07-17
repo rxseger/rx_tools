@@ -1,6 +1,7 @@
-# rtl\_tools
+# rx\_tools
 
-Standalone versions of `rtl_fm`, `rtl_power`, and `rtl_sdr` based on [librtlsdr](https://github.com/librtlsdr/librtlsdr),
+`rx_fm`, `rx_power`, and `rx_sdr` tools for receiving data from SDRs,
+based on `rtl_fm`, `rtl_power`, and `rtl_sdr` from [librtlsdr](https://github.com/librtlsdr/librtlsdr),
 but using the [SoapySDR](https://github.com/pothosware/SoapySDR) vendor-neutral SDR support library instead, intended
 to support a wider range of devices than RTL-SDR.
 
@@ -14,11 +15,11 @@ to support a wider range of devices than RTL-SDR.
 
 After building, these binaries should then be available at the root directory:
 
-* `rtl_fm`: demodulator for FM and other modes, see [rtl\_fm guide](http://kmkeen.com/rtl-demod-guide/index.html)
+* `rx_fm` (based on `rtl_fm`): demodulator for FM and other modes, see [rtl\_fm guide](http://kmkeen.com/rtl-demod-guide/index.html)
 
-* `rtl_power`: FFT logger, see [rtl\_power](http://kmkeen.com/rtl-power/)
+* `rx_power` (based on `rtl_power`): FFT logger, see [rtl\_power](http://kmkeen.com/rtl-power/)
 
-* `rtl_sdr`: emits raw I/Q data
+* `rx_sdr` (based on `rtl_sdr`): emits raw I/Q data
 
 ### Not included
 

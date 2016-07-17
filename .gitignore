@@ -5,6 +5,6 @@
 
 **/*.o
 **/*.a
-rtl_fm
-rtl_power
-rtl_sdr
+rx_fm
+rx_power
+rx_sdr
