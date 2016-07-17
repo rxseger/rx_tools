@@ -61,7 +61,6 @@
 
 #include <math.h>
 #include <pthread.h>
-#include <libusb.h>
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
