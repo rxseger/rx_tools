@@ -149,10 +149,12 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  * Find the closest matching device.
  *
  * \param s a string to be parsed
- * \return dev device, NULL on error
+ * \param devOut device output returned
+ * \param streamOut stream output returned
+ * \return dev 0 if successful
  */
 
-SoapySDRDevice *verbose_device_search(char *s);
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut);
 
 /*!
  * Read samples as Complex Signed 16-bit (CS16) pairs

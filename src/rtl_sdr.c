@@ -152,9 +152,9 @@ int main(int argc, char **argv)
 
 	buffer = malloc(out_block_size * sizeof(int16_t));
 
-	dev = verbose_device_search(dev_query);
+	r = verbose_device_search(dev_query, &dev, &stream);
 
-	if (!dev) {
+	if (r != 0) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
@@ -205,10 +205,6 @@ int main(int argc, char **argv)
 	if (true || sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
 		SoapySDRKwargs args = {};
-		if (SoapySDRDevice_setupStream(dev, &stream, SOAPY_SDR_RX, SOAPY_SDR_CS8, NULL, 0, &args) != 0) {
-			fprintf(stderr, "Failed to setup stream\n");
-			exit(1);
-		}
 		if (SoapySDRDevice_activateStream(dev, stream, 0, 0, 0) != 0) {
 			fprintf(stderr, "Failed to activate stream\n");
                         exit(1);

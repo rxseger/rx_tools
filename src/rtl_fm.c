@@ -902,12 +902,6 @@ static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
-	SoapySDRKwargs args = {};
-	char *e; // TODO: api changes to int in 0.5
-	e = SoapySDRDevice_setupStream(s->dev, &s->stream, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &args);
-	if (e != 0) {
-		fprintf(stderr, "setupStream fail: %s\n", e);
-	}
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
 	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(int16_t)); // too big to fit on stack, with 16-bit conversion
@@ -1347,7 +1341,7 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
-	dongle.dev = verbose_device_search(dongle.dev_query);
+	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
