@@ -863,7 +863,7 @@ void full_demod(struct demod_state *d)
 
 // buf: buffer
 // len: number of elements in buf
-static void rtlsdr_callback(uint8_t *buf, uint32_t len, void *ctx)
+static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 {
 	int i;
 	struct dongle_state *s = ctx;
@@ -880,7 +880,8 @@ static void rtlsdr_callback(uint8_t *buf, uint32_t len, void *ctx)
 	}
 	/* 1st: convert to 16 bit - to allow easier calculation of DC */
 	for (i=0; i<(int)len; i++) {
-		s->buf16[i] = ( (int16_t)buf[i] );
+		s->buf16[i] = ( (int16_t)buf[i] / 32767.0 * 128.0 + 0.4);
+		// TODO: remove downconversion from 16-bit to 8-bit
 	}
 	/* 2nd: do DC filtering BEFORE up-mixing */
 	if (d->dc_block_raw) {
@@ -903,8 +904,8 @@ static void *dongle_thread_fn(void *arg)
 	struct dongle_state *s = arg;
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
-	uint8_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(uint8_t));
-	bzero(buf, MAXIMUM_BUF_LENGTH * sizeof(uint8_t));
+	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(int16_t));
+	bzero(buf, MAXIMUM_BUF_LENGTH * sizeof(int16_t));
 	if (!buf) {
 		perror("malloc");
 		exit(1);
@@ -922,9 +923,9 @@ static void *dongle_thread_fn(void *arg)
 
 		if (r >= 0) {
 			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-			s->buf_len = r * 2;
+			s->buf_len = r * 2 * sizeof(int16_t);
 
-			rtlsdr_callback(buf, s->buf_len / sizeof(uint8_t), s);
+			rtlsdr_callback(buf, s->buf_len / sizeof(int16_t), s);
 		}
 	} while(r > 0);
 
