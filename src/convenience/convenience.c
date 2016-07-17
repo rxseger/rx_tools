@@ -246,11 +246,10 @@ int verbose_offset_tuning(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_gain_set(SoapySDRDevice *dev, int gain);
 int verbose_auto_gain(SoapySDRDevice *dev)
 {
 	int r;
-	r = -1;
+	r = 0;
 	/* TODO: not bridged, https://github.com/pothosware/SoapyRTLSDR/search?utf8=✓&q=rtlsdr_set_tuner_gain_mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 0);
 	if (r != 0) {
@@ -259,9 +258,39 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 		fprintf(stderr, "Tuner gain set to automatic.\n");
 	}
 	*/
-	// For now, set 40 dB, high
-	// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
-	verbose_gain_set(dev, 400);
+
+	// Per-driver hacks TODO: clean this up
+	char *driver = SoapySDRDevice_getDriverKey(dev);
+	if (strcmp(driver, "RTLSDR") == 0) {
+		// For now, set 40.0 dB, high
+		// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
+		// TODO: remove or change after auto-gain? https://github.com/pothosware/SoapyRTLSDR/issues/21 rtlsdr_set_tuner_gain_mode(dev, 0);
+		r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, 40.);
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+		} else {
+			fprintf(stderr, "Tuner gain semi-automatically set to 40 dB\n");
+		}
+	} else if (strcmp(driver, "HackRF") == 0) {
+		// HackRF has three gains LNA, VGA, and AMP, setting total distributes amongst, 116.0 dB seems to work well,
+		// even though it logs HACKRF_ERROR_INVALID_PARAM? https://github.com/rxseger/rx_tools/issues/9
+		// Total gain is distributed amongst all gains, 116 = 37,65,1; the LNA is OK (<40) but VGA is out of range (65 > 62)
+		// TODO: generic means to set all gains, of any SDR? string parsing LNA=#,VGA=#,AMP=#?
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "LNA", 40.); // max 40
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set LNA tuner gain.\n");
+		}
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "VGA", 20.); // max 65
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set VGA tuner gain.\n");
+		}
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "AMP", 0.); // on or off
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set AMP tuner gain.\n");
+		}
+
+	}
+	// otherwise leave unset, hopefully the driver has good defaults
 
 	return r;
 }
