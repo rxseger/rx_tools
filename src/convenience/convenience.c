@@ -401,6 +401,28 @@ static void show_device_info(SoapySDRDevice *dev)
 	fprintf(stderr, "\n");
 }
 
+int suppress_stdout_start(void) {
+	// Hack to redirect stdout to stderr so it doesn't interfere with audio output on stdout
+	// see https://github.com/rxseger/rx_tools/pull/11#issuecomment-233168397
+	// because SoapySDR and UHD log there, TOOO: change in SoapySDR_Log?
+	// This is restored after stream setup, if it successful.
+	int tmp_stdout = dup(STDOUT_FILENO);
+	if (dup2(STDERR_FILENO, STDOUT_FILENO) != STDOUT_FILENO) {
+		perror("dup2 start");
+	}
+
+	return tmp_stdout;
+}
+
+void suppress_stdout_stop(int tmp_stdout) {
+	// Restore stdout back to stdout
+	fflush(stdout);
+	if (dup2(tmp_stdout, STDOUT_FILENO) != STDOUT_FILENO) {
+		perror("dup2 stop");
+	}
+}
+
+
 int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut)
 {
 	size_t device_count = 0;
@@ -409,13 +431,6 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char *s2;
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
-
-	// Hack to redirect stdout to stderr so it doesn't interfere with audio output on stdout
-	// see https://github.com/rxseger/rx_tools/pull/11#issuecomment-233168397
-	// because SoapySDR and UHD log there, TOOO: change in SoapySDR_Log?
-	// This is restored after stream setup, if it successful.
-	int tmp_stdout = dup(STDOUT_FILENO);
-	dup2(STDERR_FILENO, STDOUT_FILENO);
 
 	SoapySDRKwargs args = {}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
 	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
@@ -462,10 +477,6 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
 	}
-
-	// Restore stdout back to stdout
-	fflush(stdout);
-	dup2(tmp_stdout, STDOUT_FILENO);
 
 	*devOut = dev;
 	return 0;

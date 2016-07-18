@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 		buf8 = malloc(out_block_size * sizeof(uint8_t));
 	}
 
+	int tmp_stdout = suppress_stdout_start();
 	r = verbose_device_search(dev_query, &dev, &stream);
 
 	if (r != 0) {
@@ -229,6 +230,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to activate stream\n");
                         exit(1);
                 }
+		suppress_stdout_stop(tmp_stdout);
 		while (!do_exit) {
 			void *buffs[] = {buffer};
 			int flags = 0;
@@ -243,10 +245,12 @@ int main(int argc, char **argv)
 				// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
 				n_read = r * 2;
 			} else {
-				// TODO: fix sometimes returns r=-4 SOAPY_SDR_OVERFLOW why?
-				// see error codes https://github.com/pothosware/SoapySDR/blob/master/include/SoapySDR/Errors.h
+				if (r == SOAPY_SDR_OVERFLOW) {
+					fprintf(stderr, "O");
+					fflush(stderr);
+					continue;
+				}
 				fprintf(stderr, "WARNING: sync read failed. %d\n", r);
-				break;
 			}
 
 			if ((samples_to_read > 0) && (samples_to_read < (uint32_t)n_read)) {

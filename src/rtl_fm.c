@@ -101,6 +101,8 @@ static int levelMax = 0;
 static int levelMaxMax = 0;
 static double levelSum = 0.0;
 
+static int tmp_stdout = -1;
+
 struct dongle_state
 {
 	int	  exit_flag;
@@ -911,6 +913,7 @@ static void *dongle_thread_fn(void *arg)
 		exit(1);
 	}
 
+	suppress_stdout_stop(tmp_stdout);
 	int r = 0;
 	do
 	{
@@ -920,14 +923,24 @@ static void *dongle_thread_fn(void *arg)
 		long timeoutNs = 1000000;
 
 		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
+		//fprintf(stderr, "ret=%d\n", r);
 
 		if (r >= 0) {
 			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
 			s->buf_len = r * 2 * sizeof(int16_t);
 
 			rtlsdr_callback(buf, s->buf_len / sizeof(int16_t), s);
+		} else {
+			if (r == SOAPY_SDR_OVERFLOW) {
+				fprintf(stderr, "O");
+				fflush(stderr);
+				continue;
+			}
+			fprintf(stderr, "readStream read failed: %d\n", r);
+			break;
 		}
-	} while(r > 0);
+	} while(1);
+	fprintf(stderr, "dongle_thread_fn terminated\n");
 
 	//rtlsdr_read_async(s->dev, rtlsdr_callback, s, 0, s->buf_len);
 	return 0;
@@ -1349,6 +1362,7 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
+	tmp_stdout = suppress_stdout_start();
 	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream);
 
 	if (!dongle.dev) {
