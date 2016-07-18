@@ -91,7 +91,7 @@ int *window_coefs;
 struct tuning_state
 /* one per tuning range */
 {
-	int freq;
+	int64_t freq;
 	int rate;
 	int bin_e;
 	long *avg;  /* length == 2^bin_e */
@@ -532,7 +532,7 @@ void frequency_range(char *arg, double crop)
 }
 
 static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
-void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
+void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
 	int n_read;
 
@@ -766,7 +766,7 @@ void csv_dbm(struct tuning_state *ts)
 	/* Hz low, Hz high, Hz step, samples, dbm, dbm, ... */
 	bin_count = (int)((double)len * (1.0 - ts->crop));
 	bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
-	fprintf(file, "%i, %i, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
+	fprintf(file, "%lli, %llii, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
 		(double)ts->rate / (double)(len*ds), ts->samples);
 	// something seems off with the dbm math
 	i1 = 0 + (int)((double)len * ts->crop * 0.5);
