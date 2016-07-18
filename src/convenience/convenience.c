@@ -465,7 +465,6 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 		SoapySDRKwargs_set(&args, "rtl", s);
 	}
 	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
-	else SoapySDRKwargs_set(&args, "driver", "hackrf");
 
 	dev = SoapySDRDevice_make(&args);
 	if (!dev) {
