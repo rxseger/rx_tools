@@ -776,7 +776,7 @@ void csv_dbm(struct tuning_state *ts)
 	/* Hz low, Hz high, Hz step, samples, dbm, dbm, ... */
 	bin_count = (int)((double)len * (1.0 - ts->crop));
 	bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
-	fprintf(file, "%lli, %llii, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
+	fprintf(file, "%lli, %lli, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
 		(double)ts->rate / (double)(len*ds), ts->samples);
 	// something seems off with the dbm math
 	i1 = 0 + (int)((double)len * ts->crop * 0.5);
