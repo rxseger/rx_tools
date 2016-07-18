@@ -109,8 +109,8 @@ struct tuning_state
 	//pthread_mutex_t buf_mutex;
 };
 
-/* 3000 is enough for 3GHz b/w worst case */
-#define MAX_TUNES	3000
+/* 10000 is enough for 10GHz b/w worst case */
+#define MAX_TUNES	10000
 struct tuning_state tunes[MAX_TUNES];
 int tune_count = 0;
 
@@ -431,7 +431,8 @@ void frequency_range(char *arg, double crop)
 // do we want the fewest ranges (easy) or the fewest bins (harder)?
 {
 	char *start, *stop, *step;
-	int i, j, upper, lower, max_size, bw_seen, bw_used, bin_e, buf_len;
+	int i, j, bw_seen, bw_used, bin_e, buf_len;
+	int64_t upper, lower, max_size;
 	int downsample, downsample_passes;
 	double bin_size;
 	struct tuning_state *ts;
@@ -441,9 +442,9 @@ void frequency_range(char *arg, double crop)
 	stop[-1] = '\0';
 	step = strchr(stop, ':') + 1;
 	step[-1] = '\0';
-	lower = (int)atofs(start);
-	upper = (int)atofs(stop);
-	max_size = (int)atofs(step);
+	lower = atofs(start);
+	upper = atofs(stop);
+	max_size = atofs(step);
 	stop[-1] = ':';
 	step[-1] = ':';
 	downsample = 1;
