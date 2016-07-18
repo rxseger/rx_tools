@@ -433,7 +433,7 @@ void frequency_range(char *arg, double crop)
 	char *start, *stop, *step;
 	int i, j, bin_e, buf_len;
 	int64_t upper, lower, max_size, bw_seen, bw_used;
-	int downsample, downsample_passes;
+	int64_t downsample, downsample_passes;
 	double bin_size;
 	struct tuning_state *ts;
 	/* hacky string parsing */
@@ -453,7 +453,7 @@ void frequency_range(char *arg, double crop)
 	// todo, replace loop with algebra
 	for (i=1; i<1500; i++) {
 		bw_seen = (upper - lower) / i;
-		bw_used = (int)((double)(bw_seen) / (1.0 - crop));
+		bw_used = (int64_t)((double)(bw_seen) / (1.0 - crop));
 		if (bw_used > MAXIMUM_RATE) {
 			continue;}
 		tune_count = i;
@@ -463,11 +463,19 @@ void frequency_range(char *arg, double crop)
 	if (bw_used < MINIMUM_RATE) {
 		tune_count = 1;
 		downsample = MAXIMUM_RATE / bw_used;
+		if (downsample <= 0) {
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, bw_used, downsample);
+			exit(1);
+		}
 		bw_used = bw_used * downsample;
 	}
 	if (!boxcar && downsample > 1) {
 		downsample_passes = (int)log2(downsample);
 		downsample = 1 << downsample_passes;
+		if (downsample <= 0) {
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, downsample_passes, bw_used, downsample);
+			exit(1);
+		}
 		bw_used = (int)((double)(bw_seen * downsample) / (1.0 - crop));
 	}
 	/* number of bins is power-of-two, bin size is under limit */
@@ -475,6 +483,7 @@ void frequency_range(char *arg, double crop)
 	for (i=1; i<=21; i++) {
 		bin_e = i;
 		bin_size = (double)bw_used / (double)((1<<i) * downsample);
+		//fprintf(stderr, "bin_size=%f for bw_used=%lli, downsample=%lld\n", bin_size, bw_used, downsample);
 		if (bin_size <= (double)max_size) {
 			break;}
 	}
@@ -522,7 +531,7 @@ void frequency_range(char *arg, double crop)
 	/* report */
 	fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
 	fprintf(stderr, "Dongle bandwidth: %lliHz\n", bw_used);
-	fprintf(stderr, "Downsampling by: %ix\n", downsample);
+	fprintf(stderr, "Downsampling by: %llix\n", downsample);
 	fprintf(stderr, "Cropping by: %0.2f%%\n", crop*100);
 	fprintf(stderr, "Total FFT bins: %i\n", tune_count * (1<<bin_e));
 	fprintf(stderr, "Logged FFT bins: %i\n", \
