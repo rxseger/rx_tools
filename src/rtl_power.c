@@ -561,7 +561,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune.\n");}
+		fprintf(stderr, "Error: bad retune at %lli Hz, r=%d, flags=%d.\n", freq, r, flags);}
 }
 
 void fifth_order(int16_t *data, int length)
