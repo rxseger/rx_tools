@@ -511,7 +511,7 @@ void frequency_range(char *arg, double crop)
 		for (j=0; j<(1<<bin_e); j++) {
 			ts->avg[j] = 0L;
 		}
-		ts->buf16 = (int16_t*)malloc(buf_len * sizeof(int16_t));
+		ts->buf16 = (int16_t*)malloc(buf_len * sizeof(int16_t) * 2);
 		if (!ts->buf16) {
 			fprintf(stderr, "Error: malloc.\n");
 			exit(1);
@@ -530,9 +530,9 @@ void frequency_range(char *arg, double crop)
 	fprintf(stderr, "Buffer size: %i bytes (%0.2fms)\n", buf_len, 1000 * 0.5 * (float)buf_len / (float)bw_used);
 }
 
+static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 {
-	int16_t dump[BUFFER_DUMP];
 	int n_read;
 
 	SoapySDRKwargs args = {};
@@ -979,7 +979,7 @@ int main(int argc, char **argv)
 	next_tick = time(NULL) + interval;
 	if (exit_time) {
 		exit_time = time(NULL) + exit_time;}
-	fft_buf = malloc(tunes[0].buf_len * sizeof(int16_t));
+	fft_buf = malloc(tunes[0].buf_len * sizeof(int16_t) * 2);
 	length = 1 << tunes[0].bin_e;
 	window_coefs = malloc(length * sizeof(int));
 	for (i=0; i<length; i++) {
