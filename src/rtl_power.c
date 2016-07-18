@@ -521,7 +521,7 @@ void frequency_range(char *arg, double crop)
 	}
 	/* report */
 	fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
-	fprintf(stderr, "Dongle bandwidth: %iHz\n", bw_used);
+	fprintf(stderr, "Dongle bandwidth: %lliHz\n", bw_used);
 	fprintf(stderr, "Downsampling by: %ix\n", downsample);
 	fprintf(stderr, "Cropping by: %0.2f%%\n", crop*100);
 	fprintf(stderr, "Total FFT bins: %i\n", tune_count * (1<<bin_e));
