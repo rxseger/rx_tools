@@ -1151,7 +1151,7 @@ void sanity_checks(void)
 {
 	if (controller.freq_len == 0) {
 		fprintf(stderr, "Please specify a frequency.\n");
-		exit(1);
+		usage();
 	}
 
 	if (controller.freq_len >= FREQUENCIES_LIMIT) {

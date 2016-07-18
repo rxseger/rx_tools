@@ -892,7 +892,7 @@ int main(int argc, char **argv)
 
 	if (!f_set) {
 		fprintf(stderr, "No frequency range provided.\n");
-		exit(1);
+		usage();
 	}
 
 	if ((crop < 0.0) || (crop > 1.0)) {
