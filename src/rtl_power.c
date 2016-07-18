@@ -431,8 +431,8 @@ void frequency_range(char *arg, double crop)
 // do we want the fewest ranges (easy) or the fewest bins (harder)?
 {
 	char *start, *stop, *step;
-	int i, j, bw_seen, bw_used, bin_e, buf_len;
-	int64_t upper, lower, max_size;
+	int i, j, bin_e, buf_len;
+	int64_t upper, lower, max_size, bw_seen, bw_used;
 	int downsample, downsample_passes;
 	double bin_size;
 	struct tuning_state *ts;
@@ -645,8 +645,9 @@ long real_conj(int16_t real, int16_t imag)
 
 void scanner(void)
 {
-	int i, j, j2, f, n_read, offset, bin_e, bin_len, buf_len, ds, ds_p;
+	int i, j, j2, n_read, offset, bin_e, bin_len, buf_len, ds, ds_p;
 	int32_t w;
+	int64_t f;
 	struct tuning_state *ts;
 	bin_e = tunes[0].bin_e;
 	bin_len = 1 << bin_e;
@@ -655,7 +656,7 @@ void scanner(void)
 		if (do_exit >= 2)
 			{return;}
 		ts = &tunes[i];
-		f = (int32_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
+		f = (int64_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
 
 		if (f != ts->freq) {
 			retune(dev, stream, ts->freq);}
