@@ -91,7 +91,7 @@ int *window_coefs;
 struct tuning_state
 /* one per tuning range */
 {
-	int freq;
+	int64_t freq;
 	int rate;
 	int bin_e;
 	long *avg;  /* length == 2^bin_e */
@@ -109,8 +109,8 @@ struct tuning_state
 	//pthread_mutex_t buf_mutex;
 };
 
-/* 3000 is enough for 3GHz b/w worst case */
-#define MAX_TUNES	3000
+/* 10000 is enough for 10GHz b/w worst case */
+#define MAX_TUNES	10000
 struct tuning_state tunes[MAX_TUNES];
 int tune_count = 0;
 
@@ -431,8 +431,9 @@ void frequency_range(char *arg, double crop)
 // do we want the fewest ranges (easy) or the fewest bins (harder)?
 {
 	char *start, *stop, *step;
-	int i, j, upper, lower, max_size, bw_seen, bw_used, bin_e, buf_len;
-	int downsample, downsample_passes;
+	int i, j, bin_e, buf_len;
+	int64_t upper, lower, max_size, bw_seen, bw_used;
+	int64_t downsample, downsample_passes;
 	double bin_size;
 	struct tuning_state *ts;
 	/* hacky string parsing */
@@ -441,9 +442,9 @@ void frequency_range(char *arg, double crop)
 	stop[-1] = '\0';
 	step = strchr(stop, ':') + 1;
 	step[-1] = '\0';
-	lower = (int)atofs(start);
-	upper = (int)atofs(stop);
-	max_size = (int)atofs(step);
+	lower = atofs(start);
+	upper = atofs(stop);
+	max_size = atofs(step);
 	stop[-1] = ':';
 	step[-1] = ':';
 	downsample = 1;
@@ -452,7 +453,7 @@ void frequency_range(char *arg, double crop)
 	// todo, replace loop with algebra
 	for (i=1; i<1500; i++) {
 		bw_seen = (upper - lower) / i;
-		bw_used = (int)((double)(bw_seen) / (1.0 - crop));
+		bw_used = (int64_t)((double)(bw_seen) / (1.0 - crop));
 		if (bw_used > MAXIMUM_RATE) {
 			continue;}
 		tune_count = i;
@@ -462,11 +463,19 @@ void frequency_range(char *arg, double crop)
 	if (bw_used < MINIMUM_RATE) {
 		tune_count = 1;
 		downsample = MAXIMUM_RATE / bw_used;
+		if (downsample <= 0) {
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, bw_used, downsample);
+			exit(1);
+		}
 		bw_used = bw_used * downsample;
 	}
 	if (!boxcar && downsample > 1) {
 		downsample_passes = (int)log2(downsample);
 		downsample = 1 << downsample_passes;
+		if (downsample <= 0) {
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, downsample_passes, bw_used, downsample);
+			exit(1);
+		}
 		bw_used = (int)((double)(bw_seen * downsample) / (1.0 - crop));
 	}
 	/* number of bins is power-of-two, bin size is under limit */
@@ -474,6 +483,7 @@ void frequency_range(char *arg, double crop)
 	for (i=1; i<=21; i++) {
 		bin_e = i;
 		bin_size = (double)bw_used / (double)((1<<i) * downsample);
+		//fprintf(stderr, "bin_size=%f for bw_used=%lli, downsample=%lld\n", bin_size, bw_used, downsample);
 		if (bin_size <= (double)max_size) {
 			break;}
 	}
@@ -520,8 +530,8 @@ void frequency_range(char *arg, double crop)
 	}
 	/* report */
 	fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
-	fprintf(stderr, "Dongle bandwidth: %iHz\n", bw_used);
-	fprintf(stderr, "Downsampling by: %ix\n", downsample);
+	fprintf(stderr, "Dongle bandwidth: %lliHz\n", bw_used);
+	fprintf(stderr, "Downsampling by: %llix\n", downsample);
 	fprintf(stderr, "Cropping by: %0.2f%%\n", crop*100);
 	fprintf(stderr, "Total FFT bins: %i\n", tune_count * (1<<bin_e));
 	fprintf(stderr, "Logged FFT bins: %i\n", \
@@ -531,7 +541,7 @@ void frequency_range(char *arg, double crop)
 }
 
 static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
-void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
+void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
 	int n_read;
 
@@ -551,7 +561,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune.\n");}
+		fprintf(stderr, "Error: bad retune at %lli Hz, r=%d, flags=%d.\n", freq, r, flags);}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -644,8 +654,9 @@ long real_conj(int16_t real, int16_t imag)
 
 void scanner(void)
 {
-	int i, j, j2, f, n_read, offset, bin_e, bin_len, buf_len, ds, ds_p;
+	int i, j, j2, n_read, offset, bin_e, bin_len, buf_len, ds, ds_p;
 	int32_t w;
+	int64_t f;
 	struct tuning_state *ts;
 	bin_e = tunes[0].bin_e;
 	bin_len = 1 << bin_e;
@@ -654,7 +665,7 @@ void scanner(void)
 		if (do_exit >= 2)
 			{return;}
 		ts = &tunes[i];
-		f = (int32_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
+		f = (int64_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
 
 		if (f != ts->freq) {
 			retune(dev, stream, ts->freq);}
@@ -765,7 +776,7 @@ void csv_dbm(struct tuning_state *ts)
 	/* Hz low, Hz high, Hz step, samples, dbm, dbm, ... */
 	bin_count = (int)((double)len * (1.0 - ts->crop));
 	bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
-	fprintf(file, "%i, %i, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
+	fprintf(file, "%lli, %lli, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
 		(double)ts->rate / (double)(len*ds), ts->samples);
 	// something seems off with the dbm math
 	i1 = 0 + (int)((double)len * ts->crop * 0.5);
