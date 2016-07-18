@@ -811,7 +811,7 @@ int main(int argc, char **argv)
 	time_t time_now;
 	time_t exit_time = 0;
 	char t_str[50];
-	struct tm *cal_time;
+	struct tm cal_time = {};
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 
@@ -984,14 +984,15 @@ int main(int argc, char **argv)
 	for (i=0; i<length; i++) {
 		window_coefs[i] = (int)(256*window_fn(i, length));
 	}
+	tzset();
 	while (!do_exit) {
 		scanner();
 		time_now = time(NULL);
 		if (time_now < next_tick) {
 			continue;}
 		// time, Hz low, Hz high, Hz step, samples, dbm, dbm, ...
-		cal_time = localtime(&time_now);
-		strftime(t_str, 50, "%Y-%m-%d, %H:%M:%S", cal_time);
+		localtime_r(&time_now, &cal_time);
+		strftime(t_str, 50, "%Y-%m-%d, %H:%M:%S", &cal_time);
 		for (i=0; i<tune_count; i++) {
 			fprintf(file, "%s, ", t_str);
 			csv_dbm(&tunes[i]);
