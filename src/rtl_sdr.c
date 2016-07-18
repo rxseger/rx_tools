@@ -245,10 +245,12 @@ int main(int argc, char **argv)
 				// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
 				n_read = r * 2;
 			} else {
-				// TODO: fix sometimes returns r=-4 SOAPY_SDR_OVERFLOW why?
-				// see error codes https://github.com/pothosware/SoapySDR/blob/master/include/SoapySDR/Errors.h
+				if (r == SOAPY_SDR_OVERFLOW) {
+					fprintf(stderr, "O");
+					fflush(stderr);
+					continue;
+				}
 				fprintf(stderr, "WARNING: sync read failed. %d\n", r);
-				break;
 			}
 
 			if ((samples_to_read > 0) && (samples_to_read < (uint32_t)n_read)) {
