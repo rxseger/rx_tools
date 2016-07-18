@@ -530,9 +530,8 @@ void frequency_range(char *arg, double crop)
 	fprintf(stderr, "Buffer size: %i bytes (%0.2fms)\n", buf_len, 1000 * 0.5 * (float)buf_len / (float)bw_used);
 }
 
-void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
+void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq, struct tuning_state *ts)
 {
-	int16_t dump[BUFFER_DUMP];
 	int n_read;
 
 	SoapySDRKwargs args = {};
@@ -542,13 +541,13 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int freq)
 	/* wait for settling and flush buffer */
 	usleep(5000);
 
-	void *buffs[] = {dump};
+	void *buffs[] = {ts->buf16};
 	int flags = 0;
 	long long timeNs = 0;
 	long timeoutNs = 1000000;
 	int r;
 
-	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
+	r = SoapySDRDevice_readStream(dev, stream, buffs, ts->buf_len, &flags, &timeNs, timeoutNs);
 
 	if (r < 0) {
 		fprintf(stderr, "Error: bad retune.\n");}
@@ -657,7 +656,7 @@ void scanner(void)
 		f = (int32_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
 
 		if (f != ts->freq) {
-			retune(dev, stream, ts->freq);}
+			retune(dev, stream, ts->freq, ts);}
 
 		void *buffs[] = {ts->buf16};
 		int flags = 0;
