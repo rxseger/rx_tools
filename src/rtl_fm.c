@@ -927,6 +927,7 @@ static void rtlsdr_callback(int16_t *buf, uint32_t len, void *ctx)
 	safe_cond_signal(&d->ready, &d->ready_m);
 }
 
+int generate_header(struct demod_state *d, struct output_state *o);
 static void *dongle_thread_fn(void *arg)
 {
 	struct dongle_state *s = arg;
@@ -940,6 +941,11 @@ static void *dongle_thread_fn(void *arg)
 	}
 
 	suppress_stdout_stop(tmp_stdout);
+
+	if (output.wav_format) {
+		generate_header(&demod, &output);
+	}
+
 	int r = 0;
 	do
 	{
@@ -1492,10 +1498,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to open %s\n", output.filename);
 			exit(1);
 		}
-	}
-
-	if (output.wav_format) {
-		generate_header(&demod, &output);
 	}
 
 	//r = rtlsdr_set_testmode(dongle.dev, 1);
