@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 		buf8 = malloc(out_block_size * sizeof(uint8_t));
 	}
 
+	int tmp_stdout = suppress_stdout_start();
 	r = verbose_device_search(dev_query, &dev, &stream);
 
 	if (r != 0) {
@@ -229,6 +230,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to activate stream\n");
                         exit(1);
                 }
+		suppress_stdout_stop(tmp_stdout);
 		while (!do_exit) {
 			void *buffs[] = {buffer};
 			int flags = 0;

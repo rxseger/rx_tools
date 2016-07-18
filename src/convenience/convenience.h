@@ -156,4 +156,20 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
 
 int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut);
 
+/*!
+ * Start redirecting stdout to stderr to avoid unwanted stdout emissions.
+ * Applications should call this if they want to use stdout for their own output,
+ * before verbose_device_start(), and optionally stop after configuring all settings.
+ *
+ * \return Saved file descriptor to pass to suppress_stdout_stop()
+ */
+int suppress_stdout_start(void);
+
+/*!
+ * Stop redirecting stdout to stderr.
+ *
+ * \param tmp_stdout File descriptor from suppress_stdout_start()
+ */
+void suppress_stdout_stop(int tmp_stdout);
+
 #endif /*__CONVENIENCE_H*/

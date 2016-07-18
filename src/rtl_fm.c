@@ -101,6 +101,8 @@ static int levelMax = 0;
 static int levelMaxMax = 0;
 static double levelSum = 0.0;
 
+static int tmp_stdout = -1;
+
 struct dongle_state
 {
 	int	  exit_flag;
@@ -911,6 +913,7 @@ static void *dongle_thread_fn(void *arg)
 		exit(1);
 	}
 
+	suppress_stdout_stop(tmp_stdout);
 	int r = 0;
 	do
 	{
@@ -1349,6 +1352,7 @@ int main(int argc, char **argv)
 
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
+	tmp_stdout = suppress_stdout_start();
 	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream);
 
 	if (!dongle.dev) {
