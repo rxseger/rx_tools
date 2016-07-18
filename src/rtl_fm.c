@@ -72,6 +72,7 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "convenience.h"
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
@@ -1031,7 +1032,7 @@ static void *controller_thread_fn(void *arg)
 	verbose_set_sample_rate(dongle.dev, dongle.rate);
 	fprintf(stderr, "Output at %u Hz.\n", demod.rate_in/demod.post_downsample);
 
-	SoapySDRKwargs args = {};
+	SoapySDRKwargs args = {0};
 	while (!do_exit) {
 		safe_cond_wait(&s->hop, &s->hop_m);
 		if (s->freq_len <= 1) {

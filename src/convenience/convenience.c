@@ -19,6 +19,7 @@
  * todo: use strtol for more flexible int parsing
  * */
 
+#include "convenience.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,16 @@
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
+
+#ifdef _MSC_VER
+struct tm *localtime_r (const time_t *timer, struct tm *result)
+{
+    struct tm *local_result = localtime (timer);
+    if (local_result == NULL || result == NULL) return NULL;
+    memcpy (result, local_result, sizeof (result));
+    return result;
+}
+#endif
 
 double atofs(char *s)
 /* standard suffixes */
@@ -156,7 +167,7 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 {
 	int r;
 
-	SoapySDRKwargs args = {};
+	SoapySDRKwargs args = {0};
 	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, 0, (double)frequency, &args);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set center freq.\n");
@@ -434,7 +445,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
 
-	SoapySDRKwargs args = {}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
+	SoapySDRKwargs args = {0}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
 	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
@@ -474,7 +485,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	show_device_info(dev);
 
-	SoapySDRKwargs streamArgs = {};
+	SoapySDRKwargs streamArgs = {0};
 	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &streamArgs) != 0) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
