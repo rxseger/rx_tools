@@ -31,7 +31,7 @@ Tools from librtlsdr not included in this repository:
 
 ## Device support
 
-Currently primilarly tested with an RTL-SDR dongle, but supporting other devices
-supported by SoapySDR is the goal. Experimental, use at your own risk, but bug
+Currently tested with an RTL-SDR dongle, a HackRF One, and bladeRF x40, primarily using `rx_fm`,
+but supporting all devices supported by SoapySDR is the goal. Experimental, use at your own risk, but bug
 reports and patches are welcome.
 
