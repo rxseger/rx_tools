@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=-g
+CFLAGS=-g -I src/convenience
 LIBS=$(shell pkg-config --cflags --libs SoapySDR)
 
 all: rx_fm rx_power rx_sdr

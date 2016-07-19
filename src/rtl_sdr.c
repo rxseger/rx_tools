@@ -35,8 +35,6 @@
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
-#include "convenience/convenience.h"
-
 #define DEFAULT_SAMPLE_RATE		2048000
 #define DEFAULT_BUF_LENGTH		(16 * 16384)
 #define MINIMAL_BUF_LENGTH		512

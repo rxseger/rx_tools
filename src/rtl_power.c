@@ -66,8 +66,6 @@
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
-#include "convenience/convenience.h"
-
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 #define DEFAULT_BUF_LENGTH		(1 * 16384)
