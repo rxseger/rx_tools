@@ -62,6 +62,7 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "convenience.h"
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 
@@ -545,7 +546,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
 	int n_read;
 
-	SoapySDRKwargs args = {};
+	SoapySDRKwargs args = {0};
 	SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
 	// TODO: check if failed to set frequency?
 
@@ -823,7 +824,7 @@ int main(int argc, char **argv)
 	time_t time_now;
 	time_t exit_time = 0;
 	char t_str[50];
-	struct tm cal_time = {};
+	struct tm cal_time = {0};
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 

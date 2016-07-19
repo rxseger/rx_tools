@@ -17,6 +17,21 @@
 #ifndef __CONVENIENCE_H
 #define __CONVENIENCE_H
 
+#ifdef _MSC_VER
+#define STDOUT_FILENO fileno(stdout)
+#define STDERR_FILENO fileno(stderr)
+#define bool _Bool
+#define false 0
+#define true 1
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
+#define strcasecmp _stricmp
+#include <time.h>
+struct tm *localtime_r (const time_t *timer, struct tm *result);
+#endif
+
+#include <stdint.h>
+#include <SoapySDR/Device.h>
+
 
 /* a collection of user friendly tools */
 
