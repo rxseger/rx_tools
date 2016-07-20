@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -56,7 +57,7 @@ void usage(void)
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b output_block_size (default: 16 * 16384)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
-		"\t[-F output format, cu8|cs8|cs16 (default: cu8)]\n"
+		"\t[-F output format, CU8|CS8|CS16|CF32 (default: CU8)]\n"
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n\n");
@@ -99,6 +100,7 @@ int main(int argc, char **argv)
 	FILE *file;
 	int16_t *buffer;
 	uint8_t *buf8 = NULL;
+	float *fbuf = NULL; // assumed 32-bit
 	char *dev_query = NULL;
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
@@ -139,6 +141,8 @@ int main(int argc, char **argv)
 				output_format = SOAPY_SDR_CS8;
 			} else if (strcasecmp(optarg, "CS16") == 0) {
 				output_format = SOAPY_SDR_CS16;
+			} else if (strcasecmp(optarg, "CF32") == 0) {
+				output_format = SOAPY_SDR_CF32;
 			} else {
 				// TODO: support others? maybe after https://github.com/pothosware/SoapySDR/issues/49 Conversion support
 				fprintf(stderr, "unsupported output format: %s\n", output_format);
@@ -174,6 +178,8 @@ int main(int argc, char **argv)
 	buffer = malloc(out_block_size * sizeof(int16_t));
 	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
 		buf8 = malloc(out_block_size * sizeof(uint8_t));
+	} else if (output_format == SOAPY_SDR_CF32) {
+		fbuf = malloc(out_block_size * sizeof(float));
 	}
 
 	int tmp_stdout = suppress_stdout_start();
@@ -267,6 +273,7 @@ int main(int argc, char **argv)
 				do_exit = 1;
 			}
 
+			// TODO: read these formats natively from SoapySDR (setupStream) instead of converting ourselves?
 			if (output_format == SOAPY_SDR_CS16) {
 				// The "native" format we read in, write out no conversion needed
 				// (Always reading in CS16 to support >8-bit devices)
@@ -287,6 +294,14 @@ int main(int argc, char **argv)
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
 				}
 				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
+					fprintf(stderr, "Short write, samples lost, exiting!\n");
+					break;
+				}
+			} else if (output_format == SOAPY_SDR_CF32) {
+				for (int i = 0; i < n_read; ++i) {
+					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
+				}
+				if (fwrite(fbuf, sizeof(float), n_read, file) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
