@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 			int flags = 0;
 			long long timeNs = 0;
 			long timeoutNs = 1000000;
-			int n_read = 0, r;
+			int n_read = 0, r, i;
 
 			r = SoapySDRDevice_readStream(dev, stream, buffs, out_block_size, &flags, &timeNs, timeoutNs);
 
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 					break;
 				}
 			} else if (output_format == SOAPY_SDR_CS8) {
-				for (int i = 0; i < n_read; ++i) {
+				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
 				}
 				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 					break;
 				}
 			} else if (output_format == SOAPY_SDR_CU8) {
-				for (int i = 0; i < n_read; ++i) {
+				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
 				}
 				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
 					break;
 				}
 			} else if (output_format == SOAPY_SDR_CF32) {
-				for (int i = 0; i < n_read; ++i) {
+				for (i = 0; i < n_read; ++i) {
 					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
 				}
 				if (fwrite(fbuf, sizeof(float), n_read, file) != (size_t)n_read) {
