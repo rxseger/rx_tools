@@ -444,6 +444,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char *s2;
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
+	size_t j = 0;
 
 	SoapySDRKwargs args = {0}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
 	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
@@ -457,7 +458,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 		//rtlsdr_get_device_usb_strings(i, vendor, product, serial);
 		//fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
 		fprintf(stderr, "  %zu: ", i);
-		for (size_t j = 0; j < results[i].size; j++)
+		for (j = 0; j < results[i].size; j++)
 		{
 			fprintf(stderr, "%s=%s, ", results[i].keys[j], results[i].vals[j]);
 			// TODO: save and match on keys?

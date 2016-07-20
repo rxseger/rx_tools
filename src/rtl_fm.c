@@ -1204,7 +1204,7 @@ int main(int argc, char **argv)
 #ifndef _WIN32
 	struct sigaction sigact;
 #endif
-	int r, opt;
+	int r, opt, k;
 	int custom_ppm = 0;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
@@ -1418,7 +1418,7 @@ int main(int argc, char **argv)
 		size_t bw_count = 0;
 		// TODO: well, this is deprecated by getBandwidthRange? SoapySDRRange
 		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, 0, &bw_count);
-		for (size_t k = 0; k < bw_count; ++k) {
+		for (k = 0; k < bw_count; ++k) {
 			fprintf(stderr, "%.1f ", bandwidths[k]);
 		}
 		fprintf(stderr,"\n");
