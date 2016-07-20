@@ -134,6 +134,7 @@ void usage(void)
 		"\t[-d device_index (default: 0)]\n"
 		"\t[-g tuner_gain (default: automatic)]\n"
 		"\t[-p ppm_error (default: 0)]\n"
+		"\t[-S tuner_sleep_usec (default: 5000)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n"
 		"\t (omitting the filename also uses stdout)\n"
 		"\n"
@@ -540,6 +541,7 @@ void frequency_range(char *arg, double crop)
 }
 
 static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
+static int tuner_sleep_usec = 5000;
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
 	int n_read;
@@ -549,7 +551,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	// TODO: check if failed to set frequency?
 
 	/* wait for settling and flush buffer */
-	usleep(5000);
+	usleep(tuner_sleep_usec);
 
 	void *buffs[] = {dump};
 	int flags = 0;
@@ -560,7 +562,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune at %lli Hz, r=%d, flags=%d.\n", freq, r, flags);}
+		fprintf(stderr, "Error: bad retune at %lli Hz, r=%d, flags=%d (try increasing -S).\n", freq, r, flags);}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -826,7 +828,7 @@ int main(int argc, char **argv)
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 
-	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:Oh")) != -1) {
+	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:h")) != -1) {
 		switch (opt) {
 		case 'f': // lower:upper:bin_size
 			freq_optarg = strdup(optarg);
@@ -892,6 +894,9 @@ int main(int argc, char **argv)
 		case 'F':
 			boxcar = 0;
 			comp_fir_size = atoi(optarg);
+			break;
+		case 'S':
+			tuner_sleep_usec = atoi(optarg);
 			break;
 		case 'h':
 		default:
