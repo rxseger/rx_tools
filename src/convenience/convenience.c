@@ -122,48 +122,6 @@ double atofp(char *s)
 	return atof(s);
 }
 
-int nearest_gain(SoapySDRDevice *dev, int target_gain)
-{
-	int i, r, err1, err2, nearest;
-	/* TODO: what is equivalent of rtlsdr_set_tuner_gain_mode?
-	r = rtlsdr_set_tuner_gain_mode(dev, 1);
-	if (r < 0) {
-		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
-		return r;
-	}
-	*/
-	size_t count = 0;
-        /* listGains isn't actually rtlsdr_get_tuner_gains() - it returns the
-         * types gains you can set ("TUNER"), not the possible gain values!
-	char **gains = SoapySDRDevice_listGains(dev, SOAPY_SDR_RX, 0, &count);
-
-	if (count <= 0) {
-		return 0;
-	}
-
-	fprintf(stderr, "Rx gains: ");
-	nearest = atoi(gains[0]);
-
-	for (size_t i = 0; i < count; i++) {
-		fprintf(stderr, "%s, ", gains[i]);
-
-		err1 = abs(target_gain - nearest);
-		err2 = abs(target_gain - atoi(gains[i]));
-		if (err2 < err1) {
-			nearest = atoi(gains[i]);
-		}
-	}
-
-	fprintf(stderr, "\n");
-
-	SoapySDRStrings_clear(&gains, count);
-        */
-        // TODO: get possible gains
-        nearest = target_gain;
-
-	return nearest;
-}
-
 int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 {
 	int r;
@@ -309,23 +267,46 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_gain_set(SoapySDRDevice *dev, int gain)
+int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 {
+	SoapySDRKwargs args = {0};
+	size_t i;
 	int r;
-	/*
+
+	/* TODO: manual gain mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 1);
 	if (r < 0) {
 		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
 		return r;
 	}
 	*/
-	double value = gain / 10.0; // tenths of dB -> dB
-	r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
-	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+
+	if (strchr(gain_str, '=')) {
+		// Set each gain individually (more control)
+		parse_kwargs(gain_str, &args);
+
+		for (i = 0; i < args.size; ++i) {
+			char *name = args.keys[i];
+			double value = atof(args.vals[i]);
+
+			fprintf(stderr, "Setting gain element %s: %f dB\n", name, value);
+			r = SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, name, value);
+			if (r != 0) {
+				fprintf(stderr, "WARNING: setGainElement(%s, %f) failed: %d\n", name, value, r);
+			}
+		}
 	} else {
-		fprintf(stderr, "Tuner gain set to %0.2f dB.\n", gain/10.0);
+		// Set overall gain and let SoapySDR distribute amongst components
+		double value = atof(gain_str);
+		r = SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+		} else {
+			fprintf(stderr, "Tuner gain set to %0.2f dB.\n", value);
+		}
+		// TODO: read back and print each individual getGainElement()s
 	}
+
 	return r;
 }
 
