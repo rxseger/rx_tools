@@ -80,7 +80,6 @@
 #define DEFAULT_BUF_LENGTH		(1 * 16384)
 #define MAXIMUM_OVERSAMPLE		16
 #define MAXIMUM_BUF_LENGTH		(MAXIMUM_OVERSAMPLE * DEFAULT_BUF_LENGTH)
-#define AUTO_GAIN				-100
 #define BUFFER_DUMP				4096
 
 #define FREQUENCIES_LIMIT		1000
@@ -112,7 +111,7 @@ struct dongle_state
 	uint32_t freq;
 	uint32_t rate;
 	uint32_t bandwidth;
-	int	  gain;
+	char *gain_str;
 	int16_t  buf16[MAXIMUM_BUF_LENGTH];
 	uint32_t buf_len;
 	int	  ppm_error;
@@ -207,8 +206,8 @@ void usage(void)
 		"\t	wbfm == -M fm -s 170k -o 4 -A fast -r 32k -l 0 -E deemp\n"
 		"\t	raw mode outputs 2x16 bit IQ pairs\n"
 		"\t[-s sample_rate (default: 24k)]\n"
-		"\t[-d device_index (default: 0)]\n"
-		"\t[-g tuner_gain (default: automatic)]\n"
+		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
+		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-w tuner_bandwidth (default: automatic. enables offset tuning)]\n"
 		"\t[-l squelch_level (default: 0/off)]\n"
 		"\t[-L N  prints levels every N calculations]\n"
@@ -1067,7 +1066,7 @@ void frequency_range(struct controller_state *s, char *arg)
 void dongle_init(struct dongle_state *s)
 {
 	s->rate = DEFAULT_SAMPLE_RATE;
-	s->gain = AUTO_GAIN; // tenths of a dB
+	s->gain_str = NULL;
 	s->mute = 0;
 	s->direct_sampling = 0;
 	s->offset_tuning = 0;
@@ -1230,7 +1229,7 @@ int main(int argc, char **argv)
 			}
 			break;
 		case 'g':
-			dongle.gain = (int)(atof(optarg) * 10);
+			dongle.gain_str = optarg;
 			break;
 		case 'l':
 			demod.squelch_level = (int)atof(optarg);
@@ -1398,11 +1397,10 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the tuner gain */
-	if (dongle.gain == AUTO_GAIN) {
+	if (dongle.gain_str == NULL) {
 		verbose_auto_gain(dongle.dev);
 	} else {
-		dongle.gain = nearest_gain(dongle.dev, dongle.gain);
-		verbose_gain_set(dongle.dev, dongle.gain);
+		verbose_gain_str_set(dongle.dev, dongle.gain_str);
 	}
 
 	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);

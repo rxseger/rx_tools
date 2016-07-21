@@ -52,8 +52,8 @@ void usage(void)
 		"rtl_sdr, an I/Q recorder for RTL2832 based DVB-T receivers\n\n"
 		"Usage:\t -f frequency_to_tune_to [Hz]\n"
 		"\t[-s samplerate (default: 2048000 Hz)]\n"
-		"\t[-d device_index (default: 0)]\n"
-		"\t[-g gain (default: 0 for auto)]\n"
+		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
+		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b output_block_size (default: 16 * 16384)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	char *filename = NULL;
 	int n_read;
 	int r, opt;
-	int gain = 0;
+	char *gain_str = NULL;
 	int ppm_error = 0;
 	int sync_mode = 0;
 	int direct_sampling = 0;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 			frequency = (uint32_t)atofs(optarg);
 			break;
 		case 'g':
-			gain = (int)(atof(optarg) * 10); /* tenths of a dB */
+			gain_str = optarg;
 			break;
 		case 's':
 			samp_rate = (uint32_t)atofs(optarg);
@@ -211,13 +211,12 @@ int main(int argc, char **argv)
 	/* Set the frequency */
 	verbose_set_frequency(dev, frequency);
 
-	if (0 == gain) {
+	if (NULL == gain_str) {
 		 /* Enable automatic gain */
 		verbose_auto_gain(dev);
 	} else {
 		/* Enable manual gain */
-		gain = nearest_gain(dev, gain);
-		verbose_gain_set(dev, gain);
+		verbose_gain_str_set(dev, gain_str);
 	}
 
 	verbose_ppm_set(dev, ppm_error);

@@ -69,7 +69,6 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 #define DEFAULT_BUF_LENGTH		(1 * 16384)
-#define AUTO_GAIN				-100
 #define BUFFER_DUMP				DEFAULT_BUF_LENGTH
 
 #define MAXIMUM_RATE			2800000
@@ -131,8 +130,8 @@ void usage(void)
 		"\t[-e exit_timer (default: off/0)]\n"
 		//"\t[-s avg/iir smoothing (default: avg)]\n"
 		//"\t[-t threads (default: 1)]\n"
-		"\t[-d device_index (default: 0)]\n"
-		"\t[-g tuner_gain (default: automatic)]\n"
+		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
+		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-S tuner_sleep_usec (default: 5000)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n"
@@ -809,7 +808,7 @@ int main(int argc, char **argv)
 	char *filename = NULL;
 	int i, length, r, opt, wb_mode = 0;
 	int f_set = 0;
-	int gain = AUTO_GAIN; // tenths of a dB
+	char *gain_str = NULL;
 	char *dev_query = NULL;
 	int ppm_error = 0;
 	int interval = 10;
@@ -838,7 +837,7 @@ int main(int argc, char **argv)
 			dev_query = optarg;
 			break;
 		case 'g':
-			gain = (int)(atof(optarg) * 10);
+			gain_str = optarg;
 			break;
 		case 'c':
 			crop = atofp(optarg);
@@ -962,11 +961,10 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the tuner gain */
-	if (gain == AUTO_GAIN) {
+	if (gain_str == NULL) {
 		verbose_auto_gain(dev);
 	} else {
-		gain = nearest_gain(dev, gain);
-		verbose_gain_set(dev, gain);
+		verbose_gain_str_set(dev, gain_str);
 	}
 
 	verbose_ppm_set(dev, ppm_error);

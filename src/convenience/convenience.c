@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -119,48 +120,6 @@ double atofp(char *s)
 	}
 	s[len-1] = last;
 	return atof(s);
-}
-
-int nearest_gain(SoapySDRDevice *dev, int target_gain)
-{
-	int i, r, err1, err2, nearest;
-	/* TODO: what is equivalent of rtlsdr_set_tuner_gain_mode?
-	r = rtlsdr_set_tuner_gain_mode(dev, 1);
-	if (r < 0) {
-		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
-		return r;
-	}
-	*/
-	size_t count = 0;
-        /* listGains isn't actually rtlsdr_get_tuner_gains() - it returns the
-         * types gains you can set ("TUNER"), not the possible gain values!
-	char **gains = SoapySDRDevice_listGains(dev, SOAPY_SDR_RX, 0, &count);
-
-	if (count <= 0) {
-		return 0;
-	}
-
-	fprintf(stderr, "Rx gains: ");
-	nearest = atoi(gains[0]);
-
-	for (size_t i = 0; i < count; i++) {
-		fprintf(stderr, "%s, ", gains[i]);
-
-		err1 = abs(target_gain - nearest);
-		err2 = abs(target_gain - atoi(gains[i]));
-		if (err2 < err1) {
-			nearest = atoi(gains[i]);
-		}
-	}
-
-	fprintf(stderr, "\n");
-
-	SoapySDRStrings_clear(&gains, count);
-        */
-        // TODO: get possible gains
-        nearest = target_gain;
-
-	return nearest;
 }
 
 int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
@@ -308,23 +267,46 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_gain_set(SoapySDRDevice *dev, int gain)
+int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 {
+	SoapySDRKwargs args = {0};
+	size_t i;
 	int r;
-	/*
+
+	/* TODO: manual gain mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 1);
 	if (r < 0) {
 		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
 		return r;
 	}
 	*/
-	double value = gain / 10.0; // tenths of dB -> dB
-	r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
-	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+
+	if (strchr(gain_str, '=')) {
+		// Set each gain individually (more control)
+		parse_kwargs(gain_str, &args);
+
+		for (i = 0; i < args.size; ++i) {
+			char *name = args.keys[i];
+			double value = atof(args.vals[i]);
+
+			fprintf(stderr, "Setting gain element %s: %f dB\n", name, value);
+			r = SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, name, value);
+			if (r != 0) {
+				fprintf(stderr, "WARNING: setGainElement(%s, %f) failed: %d\n", name, value, r);
+			}
+		}
 	} else {
-		fprintf(stderr, "Tuner gain set to %0.2f dB.\n", gain/10.0);
+		// Set overall gain and let SoapySDR distribute amongst components
+		double value = atof(gain_str);
+		r = SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+		} else {
+			fprintf(stderr, "Tuner gain set to %0.2f dB.\n", value);
+		}
+		// TODO: read back and print each individual getGainElement()s
 	}
+
 	return r;
 }
 
@@ -446,8 +428,11 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	SoapySDRDevice *dev = NULL;
 	size_t j = 0;
 
-	SoapySDRKwargs args = {0}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
-	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
+	SoapySDRKwargs device_make_args = {0};
+	SoapySDRKwargs device_search_args = {0};
+	SoapySDRKwargs stream_args = {0};
+
+	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&device_search_args, &device_count);
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
 		return -1;
@@ -469,16 +454,21 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	fprintf(stderr, "verbose_device_search(%s)\n", s);
 	if (s) {
-		// Exact serial match TODO: prefix, suffix
-		// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
-		//SoapySDRKwargs_set(&args, "serial", s);
-
-		SoapySDRKwargs_set(&args, "driver", "rtlsdr");
-		SoapySDRKwargs_set(&args, "rtl", s);
+		if (strchr(s, '=')) {
+			// foo=bar,baz=quux key/value pairs
+			parse_kwargs(s, &device_make_args);
+		} else if (isdigit(s[0])) {
+			// Passing an integer (-d 0, -d 1...), searches for nth rtlsdr for librtlsdr compatibility
+			SoapySDRKwargs_set(&device_make_args, "driver", "rtlsdr");
+			SoapySDRKwargs_set(&device_make_args, "rtl", s);
+		} else {
+			// Exact serial match TODO: prefix, suffix
+			// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
+			SoapySDRKwargs_set(&device_make_args, "serial", s);
+		}
 	}
-	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
 
-	dev = SoapySDRDevice_make(&args);
+	dev = SoapySDRDevice_make(&device_make_args);
 	if (!dev) {
 		fprintf(stderr, "SoapySDRDevice_make failed\n");
 		return -1;
@@ -486,8 +476,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	show_device_info(dev);
 
-	SoapySDRKwargs streamArgs = {0};
-	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &streamArgs) != 0) {
+	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &stream_args) != 0) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
 	}
@@ -542,6 +531,32 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	}
 	fprintf(stderr, "No matching devices found.\n");
 #endif
+}
+
+void parse_kwargs(char *s, SoapySDRKwargs *args)
+{
+	char *copied, *cursor, *pair, *equals;
+
+	copied = strdup(s);
+	cursor = copied;
+	while ((pair = strsep(&cursor, ",")) != NULL) {
+		char *key, *value;
+		//printf("pair = %s\n", pair);
+
+		equals = strchr(pair, '=');
+		if (equals) {
+			key = pair;
+			*equals = '\0';
+			value = equals + 1;
+		} else {
+			key = pair;
+			value = "";
+		}
+		//printf("key=|%s|, value=|%s|\n", key, value);
+		SoapySDRKwargs_set(args, key, value);
+	}
+
+	free(copied);
 }
 
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab

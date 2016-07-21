@@ -63,16 +63,6 @@ double atoft(char *s);
 double atofp(char *s);
 
 /*!
- * Find nearest supported gain
- *
- * \param dev the device handle
- * \param target_gain in tenths of a dB
- * \return 0 on success
- */
-
-int nearest_gain(SoapySDRDevice *dev, int target_gain);
-
-/*!
  * Set device frequency and report status on stderr
  *
  * \param dev the device handle
@@ -142,6 +132,15 @@ int verbose_auto_gain(SoapySDRDevice *dev);
 int verbose_gain_set(SoapySDRDevice *dev, int gain);
 
 /*!
+ * Set tuner gain elements by a key/value string
+ *
+ * \param dev the device handle
+ * \param gain_str string of gain element pairs (example LNA=40,VGA=20,AMP=0), or string of overall gain, in dB
+ * \return 0 on success
+ */
+int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str);
+
+/*!
  * Set the frequency correction value for the device and report status on stderr.
  *
  * \param dev the device handle
@@ -186,5 +185,13 @@ int suppress_stdout_start(void);
  * \param tmp_stdout File descriptor from suppress_stdout_start()
  */
 void suppress_stdout_stop(int tmp_stdout);
+
+/*!
+ * Parse a comma-separated list of key/value pairs into SoapySDRKwargs
+ *
+ * \param s String of key=value pairs, separated by commas
+ * \param args Parsed keyword arguments
+ */
+void parse_kwargs(char *s, SoapySDRKwargs *args);
 
 #endif /*__CONVENIENCE_H*/
