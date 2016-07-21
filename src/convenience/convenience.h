@@ -187,4 +187,12 @@ int suppress_stdout_start(void);
  */
 void suppress_stdout_stop(int tmp_stdout);
 
+/*!
+ * Parse a comma-separated list of key/value pairs into SoapySDRKwargs
+ *
+ * \param s String of key=value pairs, separated by commas
+ * \return Keyword arguments
+ */
+SoapySDRKwargs parse_kwargs(char *s);
+
 #endif /*__CONVENIENCE_H*/

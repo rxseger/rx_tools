@@ -543,4 +543,33 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 #endif
 }
 
+SoapySDRKwargs parse_kwargs(char *s)
+{
+	char *copied, *cursor, *pair, *equals;
+	SoapySDRKwargs args = {0};
+
+	copied = strdup(s);
+	cursor = copied;
+	while ((pair = strsep(&cursor, ",")) != NULL) {
+		char *key, *value;
+		//printf("pair = %s\n", pair);
+
+		equals = strchr(pair, '=');
+		if (equals) {
+			key = pair;
+			*equals = '\0';
+			value = equals + 1;
+		} else {
+			key = pair;
+			value = "";
+		}
+		//printf("key=|%s|, value=|%s|\n", key, value);
+		SoapySDRKwargs_set(&args, key, value);
+	}
+
+	free(copied);
+
+	return args;
+}
+
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab
