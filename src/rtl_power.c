@@ -131,7 +131,7 @@ void usage(void)
 		"\t[-e exit_timer (default: off/0)]\n"
 		//"\t[-s avg/iir smoothing (default: avg)]\n"
 		//"\t[-t threads (default: 1)]\n"
-		"\t[-d device_index (default: 0)]\n"
+		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner_gain (default: automatic)]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-S tuner_sleep_usec (default: 5000)]\n"

@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -445,8 +446,11 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
 
-	SoapySDRKwargs args = {0}; // https://github.com/pothosware/SoapySDR/wiki/C_API_Example shows passing NULL, but crashes on 0.4.3 - this works
-	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&args, &device_count);
+	SoapySDRKwargs device_make_args = {0};
+	SoapySDRKwargs device_search_args = {0};
+	SoapySDRKwargs stream_args = {0};
+
+	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&device_search_args, &device_count);
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
 		return -1;
@@ -468,16 +472,21 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	fprintf(stderr, "verbose_device_search(%s)\n", s);
 	if (s) {
-		// Exact serial match TODO: prefix, suffix
-		// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
-		//SoapySDRKwargs_set(&args, "serial", s);
-
-		SoapySDRKwargs_set(&args, "driver", "rtlsdr");
-		SoapySDRKwargs_set(&args, "rtl", s);
+		if (strchr(s, '=')) {
+			// foo=bar,baz=quux key/value pairs
+			parse_kwargs(s, &device_make_args);
+		} else if (isdigit(s[0])) {
+			// Passing an integer (-d 0, -d 1...), searches for nth rtlsdr for librtlsdr compatibility
+			SoapySDRKwargs_set(&device_make_args, "driver", "rtlsdr");
+			SoapySDRKwargs_set(&device_make_args, "rtl", s);
+		} else {
+			// Exact serial match TODO: prefix, suffix
+			// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
+			SoapySDRKwargs_set(&device_make_args, "serial", s);
+		}
 	}
-	// TODO: other parameters? driver rtlsdr, etc. parse key=value in s?
 
-	dev = SoapySDRDevice_make(&args);
+	dev = SoapySDRDevice_make(&device_make_args);
 	if (!dev) {
 		fprintf(stderr, "SoapySDRDevice_make failed\n");
 		return -1;
@@ -485,8 +494,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	show_device_info(dev);
 
-	SoapySDRKwargs streamArgs = {0};
-	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &streamArgs) != 0) {
+	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &stream_args) != 0) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
 	}
@@ -543,10 +551,9 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 #endif
 }
 
-SoapySDRKwargs parse_kwargs(char *s)
+void parse_kwargs(char *s, SoapySDRKwargs *args)
 {
 	char *copied, *cursor, *pair, *equals;
-	SoapySDRKwargs args = {0};
 
 	copied = strdup(s);
 	cursor = copied;
@@ -564,12 +571,10 @@ SoapySDRKwargs parse_kwargs(char *s)
 			value = "";
 		}
 		//printf("key=|%s|, value=|%s|\n", key, value);
-		SoapySDRKwargs_set(&args, key, value);
+		SoapySDRKwargs_set(args, key, value);
 	}
 
 	free(copied);
-
-	return args;
 }
 
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab

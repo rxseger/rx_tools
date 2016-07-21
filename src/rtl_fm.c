@@ -207,7 +207,7 @@ void usage(void)
 		"\t	wbfm == -M fm -s 170k -o 4 -A fast -r 32k -l 0 -E deemp\n"
 		"\t	raw mode outputs 2x16 bit IQ pairs\n"
 		"\t[-s sample_rate (default: 24k)]\n"
-		"\t[-d device_index (default: 0)]\n"
+		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner_gain (default: automatic)]\n"
 		"\t[-w tuner_bandwidth (default: automatic. enables offset tuning)]\n"
 		"\t[-l squelch_level (default: 0/off)]\n"
