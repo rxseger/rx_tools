@@ -868,7 +868,7 @@ static void *dongle_thread_fn(void *arg)
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
 	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(int16_t));
-	bzero(buf, MAXIMUM_BUF_LENGTH * sizeof(int16_t));
+	memset(buf, 0, MAXIMUM_BUF_LENGTH * sizeof(int16_t));
 	if (!buf) {
 		perror("malloc");
 		exit(1);
