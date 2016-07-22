@@ -25,6 +25,7 @@
 #define true 1
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 #define strcasecmp _stricmp
+char * strsep(char **sp, char *sep);
 #include <time.h>
 struct tm *localtime_r (const time_t *timer, struct tm *result);
 #endif
