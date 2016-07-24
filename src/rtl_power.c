@@ -134,6 +134,7 @@ void usage(void)
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-S tuner_sleep_usec (default: 5000)]\n"
+		"\t[-R tuner_retry_max (default: 3)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n"
 		"\t (omitting the filename also uses stdout)\n"
 		"\n"
@@ -541,13 +542,17 @@ void frequency_range(char *arg, double crop)
 
 static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
 static int tuner_sleep_usec = 5000;
+static int tuner_retry_max = 3;
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
-	int n_read;
+	int n_read, r, i;
 
 	SoapySDRKwargs args = {0};
-	SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
-	// TODO: check if failed to set frequency?
+	r = SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
+	if (r != 0) {
+		fprintf(stderr, "Error: failed to set frequency %lli Hz, r=%d\n", freq, r);
+		return;
+	}
 
 	/* wait for settling and flush buffer */
 	usleep(tuner_sleep_usec);
@@ -556,12 +561,20 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	int flags = 0;
 	long long timeNs = 0;
 	long timeoutNs = 1000000;
-	int r;
 
-	r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
+	for (i = 0; i < tuner_retry_max; ++i) {
+		r = SoapySDRDevice_readStream(dev, stream, buffs, BUFFER_DUMP, &flags, &timeNs, timeoutNs);
+		if (r < 0) {
+			//fprintf(stderr, "Warning: attempt #%d of %d, bad retune at %lli Hz, r=%d, flags=%d\n", i + 1, tuner_retry_max, freq, r, flags);
+			// only logged if all attempts failed below
+		} else {
+			//fprintf(stderr, "Retune succeeded attempt #%d of %d at %lli Hz\n", i + 1, tuner_retry_max, freq);
+			break;
+		}
+	}
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune at %lli Hz, r=%d, flags=%d (try increasing -S).\n", freq, r, flags);}
+		fprintf(stderr, "Error: bad retune at %lli Hz (%i of %i attempts), r=%d, flags=%d (try increasing -S or -R).\n", freq, i + 1, tuner_retry_max, r, flags);}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -827,7 +840,7 @@ int main(int argc, char **argv)
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 
-	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:h")) != -1) {
+	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
 		switch (opt) {
 		case 'f': // lower:upper:bin_size
 			freq_optarg = strdup(optarg);
@@ -896,6 +909,9 @@ int main(int argc, char **argv)
 			break;
 		case 'S':
 			tuner_sleep_usec = atoi(optarg);
+			break;
+		case 'R':
+			tuner_retry_max = atoi(optarg);
 			break;
 		case 'h':
 		default:
