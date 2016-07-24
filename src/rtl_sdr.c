@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 				output_format = SOAPY_SDR_CF32;
 			} else {
 				// TODO: support others? maybe after https://github.com/pothosware/SoapySDR/issues/49 Conversion support
-				fprintf(stderr, "unsupported output format: %s\n", output_format);
+				fprintf(stderr, "Unsupported output format: %s\n", optarg);
 				exit(1);
 			}
             break;
@@ -190,6 +190,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
 		exit(1);
 	}
+
+	fprintf(stderr, "Using output format: %s (input format %s)\n", output_format, SOAPY_SDR_CS16);
+
 #ifndef _WIN32
 	sigact.sa_handler = sighandler;
 	sigemptyset(&sigact.sa_mask);
