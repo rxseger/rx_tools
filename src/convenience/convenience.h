@@ -165,10 +165,11 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  * \param s a string to be parsed
  * \param devOut device output returned
  * \param streamOut stream output returned
+ * \param format stream format (such as SOAPY_SDR_CS16)
  * \return dev 0 if successful
  */
 
-int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut);
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format);
 
 /*!
  * Start redirecting stdout to stderr to avoid unwanted stdout emissions.

@@ -946,7 +946,7 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
-	r = verbose_device_search(dev_query, &dev, &stream);
+	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);

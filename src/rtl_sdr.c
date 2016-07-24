@@ -183,7 +183,8 @@ int main(int argc, char **argv)
 	}
 
 	int tmp_stdout = suppress_stdout_start();
-	r = verbose_device_search(dev_query, &dev, &stream);
+	// TODO: allow choosing input format, see https://www.reddit.com/r/RTLSDR/comments/4tpxv7/rx_tools_commandline_sdr_tools_for_rtlsdr_bladerf/d5ohfse?context=3
+	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);

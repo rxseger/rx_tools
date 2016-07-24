@@ -430,7 +430,7 @@ void suppress_stdout_stop(int tmp_stdout) {
 }
 
 
-int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut)
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format)
 {
 	size_t device_count = 0;
 	size_t i = 0;
@@ -488,7 +488,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	show_device_info(dev);
 
-	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, SOAPY_SDR_CS16, NULL, 0, &stream_args) != 0) {
+	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, format, NULL, 0, &stream_args) != 0) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
 	}
