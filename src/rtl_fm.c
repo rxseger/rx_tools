@@ -109,6 +109,7 @@ struct dongle_state
 	SoapySDRStream *stream;
 	char	*dev_query;
 	uint32_t freq;
+	int changed_freq;
 	uint32_t rate;
 	uint32_t bandwidth;
 	char *gain_str;
@@ -164,6 +165,7 @@ struct output_state
 	pthread_t thread;
 	FILE	 *file;
 	char	 *filename;
+	int	  split_files;
 	int16_t  result[MAXIMUM_BUF_LENGTH];
 	int	  result_len;
 	int	  rate;
@@ -230,6 +232,7 @@ void usage(void)
 		"\t	no-mod: enable no-mod direct sampling\n"
 		"\t	offset: enable offset tuning (only e4000 tuner)\n"
 		"\t	wav:    generate WAV header\n"
+		"\t	split:  split output files per squelch\n"
 		"\t[-q dc_avg_factor for option rdc (default: 9)]\n"
 		"\tfilename ('-' means stdout)\n"
 		"\t	omitting the filename also uses stdout\n\n"
@@ -941,10 +944,35 @@ static void *demod_thread_fn(void *arg)
 static void *output_thread_fn(void *arg)
 {
 	struct output_state *s = arg;
+	char filename[1024] = {0};
+	time_t time_now;
+	struct tm cal_time = {0};
+	FILE *file2 = NULL;
+
 	while (!do_exit) {
 		// use timedwait and pad out under runs
 		safe_cond_wait(&s->ready, &s->ready_m);
 		pthread_rwlock_rdlock(&s->rw);
+		if (s->split_files) {
+			if (!file2 || dongle.changed_freq) {
+				dongle.changed_freq = 0;
+				if (file2) fclose(file2);
+
+				time_now = time(NULL);
+				localtime_r(&time_now, &cal_time);
+				strftime(filename, sizeof(filename) - 1, "demod-%Y-%m-%dT%H:%M:%S%z.out", &cal_time);
+				// TODO: include frequency in filename (dongle.freq)
+				file2 = fopen(filename, "wb");
+				if (!file2) {
+					fprintf(stderr, "Failed to open %s: %d %s\n", output.filename, errno, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+				fprintf(stderr, "Opened %s\n", filename);
+				// Write to both file2 and s->file below
+				fwrite(s->result, 2, s->result_len, file2);
+				// TODO: buffer and only write if >X length? to avoid short captures
+			}
+		}
 		fwrite(s->result, 2, s->result_len, s->file);
 		pthread_rwlock_unlock(&s->rw);
 	}
@@ -1018,6 +1046,7 @@ static void *controller_thread_fn(void *arg)
 			fprintf(stderr, "  frequency is away from parametrized one, to avoid negative impact from dc\n");
 	}
 	verbose_set_frequency(dongle.dev, dongle.freq);
+	dongle.changed_freq = 1;
 	fprintf(stderr, "Oversampling input by: %ix.\n", demod.downsample);
 	fprintf(stderr, "Oversampling output by: %ix.\n", demod.post_downsample);
 	fprintf(stderr, "Buffer size: %0.2fms\n",
@@ -1038,6 +1067,7 @@ static void *controller_thread_fn(void *arg)
 		s->freq_now = (s->freq_now + 1) % s->freq_len;
 		optimal_settings(s->freqs[s->freq_now], demod.rate_in);
 		SoapySDRDevice_setFrequency(dongle.dev, SOAPY_SDR_RX, 0, (double)dongle.freq, &args);
+		dongle.changed_freq = 1;
 		dongle.mute = BUFFER_DUMP;
 	}
 	return 0;
@@ -1281,6 +1311,8 @@ int main(int argc, char **argv)
 				rtlagc = 1;}
 			if (strcmp("wav",  optarg) == 0) {
 				output.wav_format = 1;}
+			if (strcmp("split", optarg) == 0) {
+				output.split_files = 1;}
 			break;
 		case 'q':
 			demod.rdc_block_const = atoi(optarg);
