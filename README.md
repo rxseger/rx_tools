@@ -9,6 +9,7 @@ to support a wider range of devices than RTL-SDR.
 
 [Install SoapySDR](https://github.com/pothosware/SoapySDR/wiki#installation), then run:
 
+    cmake .
     make
 
 ## Tools included
