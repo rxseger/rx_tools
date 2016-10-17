@@ -36,3 +36,6 @@ Currently tested with an RTL-SDR dongle, a HackRF One, and bladeRF x40, primaril
 but supporting all devices supported by SoapySDR is the goal. Experimental, use at your own risk, but bug
 reports and patches are welcome.
 
+## Version history
+
+See [ChangeLog.md](./ChangeLog.md)
