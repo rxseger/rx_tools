@@ -119,8 +119,8 @@ int peak_hold = 0;
 void usage(void)
 {
 	fprintf(stderr,
-		"rtl_power, a simple FFT logger for RTL2832 based DVB-T receivers\n\n"
-		"Use:\trtl_power -f freq_range [-options] [filename]\n"
+		"rx_power (based on rtl_power), a simple FFT logger for RTL2832 based DVB-T receivers\n\n"
+		"Use:\trx_power -f freq_range [-options] [filename]\n"
 		"\t-f lower:upper:bin_size [Hz]\n"
 		"\t (bin size is a maximum, smaller more convenient bins\n"
 		"\t  will be used.  valid range 1Hz - 2.8MHz)\n"
@@ -156,14 +156,14 @@ void usage(void)
 		"CSV FFT output columns:\n"
 		"\tdate, time, Hz low, Hz high, Hz step, samples, dbm, dbm, ...\n\n"
 		"Examples:\n"
-		"\trtl_power -f 88M:108M:125k fm_stations.csv\n"
+		"\trx_power -f 88M:108M:125k fm_stations.csv\n"
 		"\t (creates 160 bins across the FM band,\n"
 		"\t  individual stations should be visible)\n"
-		"\trtl_power -f 100M:1G:1M -i 5m -1 survey.csv\n"
+		"\trx_power -f 100M:1G:1M -i 5m -1 survey.csv\n"
 		"\t (a five minute low res scan of nearly everything)\n"
-		"\trtl_power -f ... -i 15m -1 log.csv\n"
+		"\trx_power -f ... -i 15m -1 log.csv\n"
 		"\t (integrate for 15 minutes and exit afterwards)\n"
-		"\trtl_power -f ... -e 1h | gzip > log.csv.gz\n"
+		"\trx_power -f ... -e 1h | gzip > log.csv.gz\n"
 		"\t (collect data for one hour and compress it on the fly)\n\n"
 		"Convert CSV to a waterfall graphic with:\n"
 		"\t http://kmkeen.com/tmp/heatmap.py.txt \n");

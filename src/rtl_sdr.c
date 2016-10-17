@@ -49,7 +49,7 @@ static SoapySDRStream *stream = NULL;
 void usage(void)
 {
 	fprintf(stderr,
-		"rtl_sdr, an I/Q recorder for RTL2832 based DVB-T receivers\n\n"
+		"rx_sdr (based on rtl_sdr), an I/Q recorder for RTL2832 based DVB-T receivers\n\n"
 		"Usage:\t -f frequency_to_tune_to [Hz]\n"
 		"\t[-s samplerate (default: 2048000 Hz)]\n"
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
