@@ -195,8 +195,8 @@ struct controller_state controller;
 void usage(void)
 {
 	fprintf(stderr,
-		"rtl_fm, a simple narrow band FM demodulator for RTL2832 based DVB-T receivers\n\n"
-		"Use:\trtl_fm -f freq [-options] [filename]\n"
+		"rx_fm (based on rtl_fm), a simple narrow band FM demodulator for RTL2832 based DVB-T receivers\n\n"
+		"Use:\trx_fm -f freq [-options] [filename]\n"
 		"\t-f frequency_to_tune_to [Hz]\n"
 		"\t	use multiple -f for scanning (requires squelch)\n"
 		"\t	ranges supported, -f 118M:137M:25k\n"
@@ -248,7 +248,7 @@ void usage(void)
 		//"\t (fifo will contain the active frequency)\n"
 		"\n"
 		"Produces signed 16 bit ints, use Sox or aplay to hear them.\n"
-		"\trtl_fm ... | play -t raw -r 24k -es -b 16 -c 1 -V1 -\n"
+		"\trx_fm ... | play -t raw -r 24k -es -b 16 -c 1 -V1 -\n"
 		"\t		   | aplay -r 24k -f S16_LE -t raw -c 1\n"
 		"\t  -M wbfm  | play -r 32k ... \n"
 		"\t  -E wav   | play -t wav - \n"
