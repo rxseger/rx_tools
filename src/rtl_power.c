@@ -166,7 +166,7 @@ void usage(void)
 		"\trx_power -f ... -e 1h | gzip > log.csv.gz\n"
 		"\t (collect data for one hour and compress it on the fly)\n\n"
 		"Convert CSV to a waterfall graphic with:\n"
-		"\t http://kmkeen.com/tmp/heatmap.py.txt \n");
+		"\t https://raw.githubusercontent.com/keenerd/rtl-sdr-misc/master/heatmap/heatmap.py \n");
 	exit(1);
 }
 
