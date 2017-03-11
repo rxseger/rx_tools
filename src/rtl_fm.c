@@ -867,8 +867,9 @@ static void *dongle_thread_fn(void *arg)
 	struct dongle_state *s = arg;
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
-	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * sizeof(int16_t));
-	memset(buf, 0, MAXIMUM_BUF_LENGTH * sizeof(int16_t));
+	size_t elemsize = SoapySDR_formatToSize(SOAPY_SDR_CS16);
+	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * elemsize);
+	memset(buf, 0, MAXIMUM_BUF_LENGTH * elemsize);
 	if (!buf) {
 		perror("malloc");
 		exit(1);
@@ -893,9 +894,9 @@ static void *dongle_thread_fn(void *arg)
 
 		if (r >= 0) {
 			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-			s->buf_len = r * 2 * sizeof(int16_t);
+			s->buf_len = r * elemsize;
 
-			rtlsdr_callback(buf, s->buf_len / sizeof(int16_t), s);
+			rtlsdr_callback(buf, r * 2, s);
 		} else {
 			if (r == SOAPY_SDR_OVERFLOW) {
 				fprintf(stderr, "O");

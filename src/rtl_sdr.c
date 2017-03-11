@@ -175,11 +175,11 @@ int main(int argc, char **argv)
 		out_block_size = DEFAULT_BUF_LENGTH;
 	}
 
-	buffer = malloc(out_block_size * sizeof(int16_t));
+	buffer = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
 	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
-		buf8 = malloc(out_block_size * sizeof(uint8_t));
+		buf8 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS8));
 	} else if (output_format == SOAPY_SDR_CF32) {
-		fbuf = malloc(out_block_size * sizeof(float));
+		fbuf = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CF32));
 	}
 
 	int tmp_stdout = suppress_stdout_start();

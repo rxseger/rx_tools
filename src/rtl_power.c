@@ -521,7 +521,7 @@ void frequency_range(char *arg, double crop)
 		for (j=0; j<(1<<bin_e); j++) {
 			ts->avg[j] = 0L;
 		}
-		ts->buf16 = (int16_t*)malloc(buf_len * sizeof(int16_t) * 2);
+		ts->buf16 = (int16_t*)malloc(buf_len * SoapySDR_formatToSize(SOAPY_SDR_CS16));
 		if (!ts->buf16) {
 			fprintf(stderr, "Error: malloc.\n");
 			exit(1);
