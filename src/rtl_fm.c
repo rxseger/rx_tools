@@ -263,7 +263,6 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 		return TRUE;
 	}
 	return FALSE;
@@ -273,7 +272,6 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 }
 #endif
 
@@ -1473,6 +1471,7 @@ int main(int argc, char **argv)
 	if (output.file != stdout) {
 		fclose(output.file);}
 
+	SoapySDRDevice_closeStream(dongle.dev, dongle.stream);
 	SoapySDRDevice_unmake(dongle.dev);
 	return r >= 0 ? r : -r;
 }

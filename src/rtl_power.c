@@ -1046,6 +1046,8 @@ int main(int argc, char **argv)
 	if (file != stdout) {
 		fclose(file);}
 
+	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
+	SoapySDRDevice_closeStream(dev, stream);
 	SoapySDRDevice_unmake(dev);
 	free(fft_buf);
 	free(window_coefs);

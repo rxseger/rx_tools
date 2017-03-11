@@ -71,7 +71,6 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 		return TRUE;
 	}
 	return FALSE;
@@ -81,7 +80,6 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 }
 #endif
 
@@ -333,6 +331,8 @@ int main(int argc, char **argv)
 		fclose(file);
 
 	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
+	SoapySDRDevice_closeStream(dev, stream);
+	SoapySDRDevice_unmake(dev);
 	free (buffer);
 out:
 	return r >= 0 ? r : -r;
