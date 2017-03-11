@@ -438,49 +438,10 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char *s2;
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
-	size_t j = 0;
 
-	SoapySDRKwargs device_make_args = {0};
-	SoapySDRKwargs device_search_args = {0};
 	SoapySDRKwargs stream_args = {0};
 
-	SoapySDRKwargs *results = SoapySDRDevice_enumerate(&device_search_args, &device_count);
-	if (!device_count) {
-		fprintf(stderr, "No supported devices found.\n");
-		return -1;
-	}
-	fprintf(stderr, "Found %zu device(s):\n", device_count);
-
-	for (i = 0; i < device_count; i++) {
-		//rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-		//fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
-		fprintf(stderr, "  %zu: ", i);
-		for (j = 0; j < results[i].size; j++)
-		{
-			fprintf(stderr, "%s=%s, ", results[i].keys[j], results[i].vals[j]);
-			// TODO: save and match on keys?
-		}
-		fprintf(stderr, "\n");
-	}
-	fprintf(stderr, "\n");
-
-	fprintf(stderr, "verbose_device_search(%s)\n", s);
-	if (s) {
-		if (strchr(s, '=')) {
-			// foo=bar,baz=quux key/value pairs
-			parse_kwargs(s, &device_make_args);
-		} else if (isdigit(s[0])) {
-			// Passing an integer (-d 0, -d 1...), searches for nth rtlsdr for librtlsdr compatibility
-			SoapySDRKwargs_set(&device_make_args, "driver", "rtlsdr");
-			SoapySDRKwargs_set(&device_make_args, "rtl", s);
-		} else {
-			// Exact serial match TODO: prefix, suffix
-			// TODO: seems to not work? have rtl_eeprom programmed serial number "3" on RTL-SDR but it chooses the HackRF instead, if present
-			SoapySDRKwargs_set(&device_make_args, "serial", s);
-		}
-	}
-
-	dev = SoapySDRDevice_make(&device_make_args);
+	dev = SoapySDRDevice_makeStrArgs(s);
 	if (!dev) {
 		fprintf(stderr, "SoapySDRDevice_make failed\n");
 		return -1;
@@ -495,54 +456,6 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	*devOut = dev;
 	return 0;
-
-
-	// TODO: device search matching by properties above (key/value pairs), right now only returning zeroth device
-	// example device:
-	//   0: available=Yes, driver=rtlsdr, label=Generic RTL2832U OEM :: 3, manufacturer=Realtek, product=RTL2838UHIDIR, rtl=0, serial=3, tuner=Rafael Micro R820T,
-#if 0
-	/* does string look like raw id number */
-	device = (int)strtol(s, &s2, 0);
-	if (s2[0] == '\0' && device >= 0 && device < device_count) {
-		fprintf(stderr, "Using device %d: %s\n",
-			device, rtlsdr_get_device_name((uint32_t)device));
-		return device;
-	}
-	/* does string exact match a serial */
-	for (i = 0; i < device_count; i++) {
-		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-		if (strcmp(s, serial) != 0) {
-			continue;}
-		device = i;
-		fprintf(stderr, "Using device %d: %s\n",
-			device, rtlsdr_get_device_name((uint32_t)device));
-		return device;
-	}
-	/* does string prefix match a serial */
-	for (i = 0; i < device_count; i++) {
-		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-		if (strncmp(s, serial, strlen(s)) != 0) {
-			continue;}
-		device = i;
-		fprintf(stderr, "Using device %d: %s\n",
-			device, rtlsdr_get_device_name((uint32_t)device));
-		return device;
-	}
-	/* does string suffix match a serial */
-	for (i = 0; i < device_count; i++) {
-		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-		offset = strlen(serial) - strlen(s);
-		if (offset < 0) {
-			continue;}
-		if (strncmp(s, serial+offset, strlen(s)) != 0) {
-			continue;}
-		device = i;
-		fprintf(stderr, "Using device %d: %s\n",
-			device, rtlsdr_get_device_name((uint32_t)device));
-		return device;
-	}
-	fprintf(stderr, "No matching devices found.\n");
-#endif
 }
 
 void parse_kwargs(char *s, SoapySDRKwargs *args)
