@@ -148,6 +148,24 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 	return r;
 }
 
+int verbose_set_antenna(SoapySDRDevice *dev, char * ant)
+{
+	int r;
+	if (ant != NULL) {
+	  r = (int)SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, 0, ant);
+	} else {
+	  r = 0;
+	}
+	
+	if (r != 0) {
+		fprintf(stderr, "WARNING: Failed to set antenna.\n");
+	} else {
+	        char * antval = SoapySDRDevice_getAntenna(dev, SOAPY_SDR_RX, 0);
+		fprintf(stderr, "Antenna set to %s\n", antval);
+	}
+	return r;
+}
+
 int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate)
 {
 	int r;

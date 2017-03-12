@@ -60,6 +60,7 @@ void usage(void)
 		"\t[-F output format, CU8|CS8|CS16|CF32 (default: CU8)]\n"
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
+		"\t[-A Name of antenna to use]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
@@ -104,7 +105,8 @@ int main(int argc, char **argv)
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
 	char *output_format = SOAPY_SDR_CU8;
-
+	char * ant = NULL;
+	
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:")) != -1) {
 		switch (opt) {
 		case 'd':
@@ -132,6 +134,9 @@ int main(int argc, char **argv)
 		case 'S':
 			sync_mode = 1;
 			break;
+		case 'A':
+		        ant = optarg;
+		        break;
 		case 'F':
 			if (strcasecmp(optarg, "CU8") == 0) {
 				output_format = SOAPY_SDR_CU8;
@@ -213,6 +218,11 @@ int main(int argc, char **argv)
 	/* Set the frequency */
 	verbose_set_frequency(dev, frequency);
 
+	/* Set the antenna */
+	verbose_set_antenna(dev, ant);
+
+	printf("****Number of channels: %d\n", SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX));
+	
 	if (NULL == gain_str) {
 		 /* Enable automatic gain */
 		verbose_auto_gain(dev);

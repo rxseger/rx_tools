@@ -151,6 +151,16 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str);
 int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error);
 
 /*!
+ * Set the antenna value for the device and report status on stderr.
+ *
+ * \param dev the device handle
+ * \param ant string name of the antenna to use
+ * \return 0 on success
+ */
+
+int verbose_set_antenna(SoapySDRDevice *dev, char * ant);
+
+/*!
  * Reset buffer
  *
  * \param dev the device handle
