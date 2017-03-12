@@ -61,7 +61,7 @@ void usage(void)
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
 		"\t[-A Name of antenna to use]\n"
-		"\tfilename (a '-' dumps samples to stdout)\n\n");
+		"\tfilename0 filename1 (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
 
@@ -89,15 +89,19 @@ int main(int argc, char **argv)
 #ifndef _WIN32
 	struct sigaction sigact;
 #endif
-	char *filename = NULL;
+	char *filename0 = NULL;
+        char *filename1 = NULL;
 	int n_read;
 	int r, opt;
 	char *gain_str = NULL;
 	int ppm_error = 0;
 	int sync_mode = 0;
 	int direct_sampling = 0;
-	FILE *file;
-	int16_t *buffer;
+	FILE *file_ch0;
+        FILE *file_ch1;
+	int16_t *buffer_ch0;
+        int16_t *buffer_ch1;
+
 	uint8_t *buf8 = NULL;
 	float *fbuf = NULL; // assumed 32-bit
 	char *dev_query = NULL;
@@ -107,7 +111,7 @@ int main(int argc, char **argv)
 	char *output_format = SOAPY_SDR_CU8;
 	char * ant = NULL;
 	
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:A:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -161,10 +165,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (argc <= optind) {
+	if (argc <= optind+1) {
 		usage();
 	} else {
-		filename = argv[optind];
+		filename0 = argv[optind];
+                filename1 = argv[optind+1];
 	}
 
 	if(out_block_size < MINIMAL_BUF_LENGTH ||
@@ -178,7 +183,9 @@ int main(int argc, char **argv)
 		out_block_size = DEFAULT_BUF_LENGTH;
 	}
 
-	buffer = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
+	buffer_ch0 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
+        buffer_ch1 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
+
 	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
 		buf8 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS8));
 	} else if (output_format == SOAPY_SDR_CF32) {
@@ -233,17 +240,23 @@ int main(int argc, char **argv)
 
 	verbose_ppm_set(dev, ppm_error);
 
-	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
-		file = stdout;
+	if(strcmp(filename0, "-") == 0) { /* Write samples to stdout */
+		file_ch0 = stdout;
 #ifdef _WIN32
 		_setmode(_fileno(stdin), _O_BINARY);
 #endif
 	} else {
-		file = fopen(filename, "wb");
-		if (!file) {
-			fprintf(stderr, "Failed to open %s\n", filename);
+		file_ch0 = fopen(filename0, "wb");
+		if (!file_ch0) {
+			fprintf(stderr, "Failed to open %s\n", filename0);
 			goto out;
 		}
+                file_ch1 = fopen(filename1, "wb");
+                if (!file_ch1) {
+                        fprintf(stderr, "Failed to open %s\n", filename1);
+                        goto out;
+                }
+
 	}
 
 	/* Reset endpoint before we start reading from it (mandatory) */
@@ -258,7 +271,7 @@ int main(int argc, char **argv)
                 }
 		suppress_stdout_stop(tmp_stdout);
 		while (!do_exit) {
-			void *buffs[] = {buffer};
+			void *buffs[] = {buffer_ch0, buffer_ch1};
 			int flags = 0;
 			long long timeNs = 0;
 			long timeoutNs = 1000000;
@@ -288,31 +301,36 @@ int main(int argc, char **argv)
 			if (output_format == SOAPY_SDR_CS16) {
 				// The "native" format we read in, write out no conversion needed
 				// (Always reading in CS16 to support >8-bit devices)
-				if (fwrite(buffer, sizeof(int16_t), n_read, file) != (size_t)n_read) {
+				if (fwrite(buffer_ch0, sizeof(int16_t), n_read, file_ch0) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
+                                if (fwrite(buffer_ch1, sizeof(int16_t), n_read, file_ch1) != (size_t)n_read) {
+                                        fprintf(stderr, "Short write, samples lost, exiting!\n");
+                                        break;
+                                }
+
 			} else if (output_format == SOAPY_SDR_CS8) {
 				for (i = 0; i < n_read; ++i) {
-					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
+					buf8[i] = ( (int16_t)buffer_ch0[i] / 32767.0 * 128.0 + 0.4);
 				}
-				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
+				if (fwrite(buf8, sizeof(uint8_t), n_read, file_ch0) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
 			} else if (output_format == SOAPY_SDR_CU8) {
 				for (i = 0; i < n_read; ++i) {
-					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
+					buf8[i] = ( (int16_t)buffer_ch0[i] / 32767.0 * 128.0 + 127.4);
 				}
-				if (fwrite(buf8, sizeof(uint8_t), n_read, file) != (size_t)n_read) {
+				if (fwrite(buf8, sizeof(uint8_t), n_read, file_ch0) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
 			} else if (output_format == SOAPY_SDR_CF32) {
 				for (i = 0; i < n_read; ++i) {
-					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
+					fbuf[i] = buffer_ch0[i] * 1.0f / SHRT_MAX;
 				}
-				if (fwrite(fbuf, sizeof(float), n_read, file) != (size_t)n_read) {
+				if (fwrite(fbuf, sizeof(float), n_read, file_ch0) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
@@ -337,13 +355,15 @@ int main(int argc, char **argv)
 	else
 		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);
 
-	if (file != stdout)
-		fclose(file);
+	if (file_ch0 != stdout)
+		fclose(file_ch0);
+        fclose(file_ch1);
 
 	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 	SoapySDRDevice_closeStream(dev, stream);
 	SoapySDRDevice_unmake(dev);
-	free (buffer);
+	free (buffer_ch0);
+        free(buffer_ch1);
 out:
 	return r >= 0 ? r : -r;
 }
