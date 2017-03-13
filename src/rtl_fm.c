@@ -113,7 +113,6 @@ struct dongle_state
 	uint32_t bandwidth;
 	char *gain_str;
 	int16_t  buf16[MAXIMUM_BUF_LENGTH];
-	uint32_t buf_len;
 	int	  ppm_error;
 	int	  offset_tuning;
 	int	  direct_sampling;
@@ -865,9 +864,10 @@ static void *dongle_thread_fn(void *arg)
 	struct dongle_state *s = arg;
 
 	SoapySDRDevice_activateStream(s->dev, s->stream, 0, 0, 0);
+	size_t samples_per_buffer = MAXIMUM_BUF_LENGTH/2; //fix for int16 storage
 	size_t elemsize = SoapySDR_formatToSize(SOAPY_SDR_CS16);
-	int16_t *buf = malloc(MAXIMUM_BUF_LENGTH * elemsize);
-	memset(buf, 0, MAXIMUM_BUF_LENGTH * elemsize);
+	int16_t *buf = malloc(samples_per_buffer * elemsize);
+	memset(buf, 0, samples_per_buffer * elemsize);
 	if (!buf) {
 		perror("malloc");
 		exit(1);
@@ -887,13 +887,11 @@ static void *dongle_thread_fn(void *arg)
 		long long timeNs = 0;
 		long timeoutNs = 1000000;
 
-		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, MAXIMUM_BUF_LENGTH, &flags, &timeNs, timeoutNs);
+		r = SoapySDRDevice_readStream(s->dev, s->stream, buffs, samples_per_buffer, &flags, &timeNs, timeoutNs);
 		//fprintf(stderr, "ret=%d\n", r);
 
 		if (r >= 0) {
-			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-			s->buf_len = r * elemsize;
-
+			// r is number of elements read, elements=complex pairs, so buffer length in bytes is twice
 			rtlsdr_callback(buf, r * 2, s);
 		} else {
 			if (r == SOAPY_SDR_OVERFLOW) {
