@@ -70,7 +70,7 @@ double atofp(char *s);
  * \return 0 on success
  */
 
-int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency);
+int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t chan);
 
 /*!
  * Set device sample rate and report status on stderr
@@ -80,7 +80,7 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency);
  * \return 0 on success
  */
 
-int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate);
+int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t chan);
 
 /*!
  * Set device bandwidth and report status on stderr
@@ -90,7 +90,7 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate);
  * \return 0 on success
  */
 
-int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth);
+int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth, size_t chan);
 
 
 /*!
@@ -119,7 +119,7 @@ int verbose_offset_tuning(SoapySDRDevice *dev);
  * \return 0 on success
  */
 
-int verbose_auto_gain(SoapySDRDevice *dev);
+int verbose_auto_gain(SoapySDRDevice *dev, size_t chan);
 
 /*!
  * Set tuner gain and report status on stderr
@@ -129,7 +129,7 @@ int verbose_auto_gain(SoapySDRDevice *dev);
  * \return 0 on success
  */
 
-int verbose_gain_set(SoapySDRDevice *dev, int gain);
+int verbose_gain_set(SoapySDRDevice *dev, int gain, size_t chan);
 
 /*!
  * Set tuner gain elements by a key/value string
@@ -138,7 +138,7 @@ int verbose_gain_set(SoapySDRDevice *dev, int gain);
  * \param gain_str string of gain element pairs (example LNA=40,VGA=20,AMP=0), or string of overall gain, in dB
  * \return 0 on success
  */
-int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str);
+int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t chan);
 
 /*!
  * Set the frequency correction value for the device and report status on stderr.
@@ -148,7 +148,7 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str);
  * \return 0 on success
  */
 
-int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error);
+int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t chan);
 
 /*!
  * Set the antenna value for the device and report status on stderr.
@@ -158,7 +158,7 @@ int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error);
  * \return 0 on success
  */
 
-int verbose_set_antenna(SoapySDRDevice *dev, char * ant);
+int verbose_set_antenna(SoapySDRDevice *dev, const char * ant, size_t chan);
 
 /*!
  * Reset buffer
@@ -179,7 +179,8 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  * \return dev 0 if successful
  */
 
-int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format);
+int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format,
+			  const size_t * channels, size_t nchannels);
 
 /*!
  * Start redirecting stdout to stderr to avoid unwanted stdout emissions.

@@ -946,7 +946,7 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
-	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
+	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16, NULL, 0);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
@@ -978,12 +978,12 @@ int main(int argc, char **argv)
 
 	/* Set the tuner gain */
 	if (gain_str == NULL) {
-		verbose_auto_gain(dev);
+	  verbose_auto_gain(dev, 0);
 	} else {
-		verbose_gain_str_set(dev, gain_str);
+	  verbose_gain_str_set(dev, gain_str, 0);
 	}
 
-	verbose_ppm_set(dev, ppm_error);
+	verbose_ppm_set(dev, ppm_error, 0);
 
 	if (strcmp(filename, "-") == 0) { /* Write log to stdout */
 		file = stdout;

@@ -61,6 +61,7 @@ void usage(void)
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
 		"\t[-A Name of antenna to use]\n"
+		"\t[-N Number of receive channels to use]\n"
 		"\tfilename0 filename1 (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
@@ -110,8 +111,11 @@ int main(int argc, char **argv)
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
 	char *output_format = SOAPY_SDR_CU8;
 	char * ant = NULL;
+	size_t * channels;
+	size_t nchan = 0;
+	size_t ch;
 	
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:A:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:A:N:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -141,6 +145,9 @@ int main(int argc, char **argv)
 		case 'A':
 		        ant = optarg;
 		        break;
+		case 'N':
+   		        nchan = atoi(optarg);
+			break;
 		case 'F':
 			if (strcasecmp(optarg, "CU8") == 0) {
 				output_format = SOAPY_SDR_CU8;
@@ -194,7 +201,14 @@ int main(int argc, char **argv)
 
 	int tmp_stdout = suppress_stdout_start();
 	// TODO: allow choosing input format, see https://www.reddit.com/r/RTLSDR/comments/4tpxv7/rx_tools_commandline_sdr_tools_for_rtlsdr_bladerf/d5ohfse?context=3
-	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
+
+	if (nchan > 0) {
+	  channels = calloc(nchan, sizeof(size_t));
+	} else {
+	  channels = NULL;
+	}
+	
+	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16, channels, nchan);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
@@ -203,6 +217,8 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Using output format: %s (input format %s)\n", output_format, SOAPY_SDR_CS16);
 
+	printf("****Number of channels: %d\n", SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX));
+	
 #ifndef _WIN32
 	sigact.sa_handler = sighandler;
 	sigemptyset(&sigact.sa_mask);
@@ -220,25 +236,37 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the sample rate */
-	verbose_set_sample_rate(dev, samp_rate);
-
 	/* Set the frequency */
-	verbose_set_frequency(dev, frequency);
-
 	/* Set the antenna */
-	verbose_set_antenna(dev, ant);
-
-	printf("****Number of channels: %d\n", SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX));
-	
-	if (NULL == gain_str) {
-		 /* Enable automatic gain */
-		verbose_auto_gain(dev);
+	if (channels == NULL) {
+   	        verbose_set_sample_rate(dev, samp_rate, 0);
+	        verbose_set_frequency(dev, frequency, 0);
+	        verbose_set_antenna(dev, ant, 0);
+	  	if (NULL == gain_str) {
+		        /* Enable automatic gain */
+		  verbose_auto_gain(dev, 0);
+		} else {
+		  /* Enable manual gain */
+		  verbose_gain_str_set(dev, gain_str, 0);
+		}
+		verbose_ppm_set(dev, ppm_error, 0);
 	} else {
-		/* Enable manual gain */
-		verbose_gain_str_set(dev, gain_str);
+   	       for(ch = 0; ch < nchan; ch++) {
+	           verbose_set_sample_rate(dev, samp_rate, channels[ch]);
+		   verbose_set_frequency(dev, frequency, channels[ch]);
+		   verbose_set_antenna(dev, ant, channels[ch]);
+		   if (NULL == gain_str) {
+		     /* Enable automatic gain */
+		     verbose_auto_gain(dev, channels[ch]);
+		   } else {
+		     /* Enable manual gain */
+		     verbose_gain_str_set(dev, gain_str, channels[ch]);
+		   }
+		   verbose_ppm_set(dev, ppm_error, channels[ch]);
+		   
+	       }
 	}
-
-	verbose_ppm_set(dev, ppm_error);
+	
 
 	if(strcmp(filename0, "-") == 0) { /* Write samples to stdout */
 		file_ch0 = stdout;
