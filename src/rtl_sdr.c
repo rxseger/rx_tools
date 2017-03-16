@@ -172,11 +172,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (argc <= optind+1) {
+	if (argc <= optind) {
 		usage();
 	} else {
 		filename0 = argv[optind];
-                filename1 = argv[optind+1];
+		if (argc > optind) {
+		  filename1 = argv[optind+1];
+		} else {
+		  filename1 = NULL;
+		}
 	}
 
 	if(out_block_size < MINIMAL_BUF_LENGTH ||
@@ -279,11 +283,15 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Failed to open %s\n", filename0);
 			goto out;
 		}
-                file_ch1 = fopen(filename1, "wb");
-                if (!file_ch1) {
-                        fprintf(stderr, "Failed to open %s\n", filename1);
-                        goto out;
-                }
+		if (filename1 != NULL) {
+		  file_ch1 = fopen(filename1, "wb");
+		  if (!file_ch1) {
+		    fprintf(stderr, "Failed to open %s\n", filename1);
+		    goto out;
+		  }
+		} else {
+		  file_ch1 = NULL;
+		}
 
 	}
 
@@ -333,10 +341,12 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-                                if (fwrite(buffer_ch1, sizeof(int16_t), n_read, file_ch1) != (size_t)n_read) {
-                                        fprintf(stderr, "Short write, samples lost, exiting!\n");
-                                        break;
-                                }
+				if (file_ch1 != NULL) {
+				  if (fwrite(buffer_ch1, sizeof(int16_t), n_read, file_ch1) != (size_t)n_read) {
+				    fprintf(stderr, "Short write, samples lost, exiting!\n");
+				    break;
+				  }
+				}
 
 			} else if (output_format == SOAPY_SDR_CS8) {
 				for (i = 0; i < n_read; ++i) {
@@ -385,8 +395,10 @@ int main(int argc, char **argv)
 
 	if (file_ch0 != stdout)
 		fclose(file_ch0);
-        fclose(file_ch1);
-
+        if (file_ch1 != NULL) {
+	  fclose(file_ch1);
+	}
+	
 	SoapySDRDevice_deactivateStream(dev, stream, 0, 0);
 	SoapySDRDevice_closeStream(dev, stream);
 	SoapySDRDevice_unmake(dev);
