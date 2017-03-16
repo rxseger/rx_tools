@@ -208,6 +208,9 @@ int main(int argc, char **argv)
 
 	if (nchan > 0) {
 	  channels = calloc(nchan, sizeof(size_t));
+	  for(ch = 0; ch < nchan; ch++) {
+	    channels[ch] = ch;
+	  }
 	} else {
 	  channels = NULL;
 	}
