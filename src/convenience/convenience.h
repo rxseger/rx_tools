@@ -77,6 +77,7 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t chan);
  *
  * \param dev the device handle
  * \param samp_rate in samples/second
+ * \param chan the channel humber
  * \return 0 on success
  */
 
@@ -87,6 +88,7 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t chan
  *
  * \param dev the device handle
  * \param frequency in Hz
+ * \param chan the channel humber
  * \return 0 on success
  */
 
@@ -116,6 +118,7 @@ int verbose_offset_tuning(SoapySDRDevice *dev);
  * Enable auto gain and report status on stderr
  *
  * \param dev the device handle
+ * \param chan the channel humber
  * \return 0 on success
  */
 
@@ -126,6 +129,7 @@ int verbose_auto_gain(SoapySDRDevice *dev, size_t chan);
  *
  * \param dev the device handle
  * \param gain in tenths of a dB
+ * \param chan the channel humber
  * \return 0 on success
  */
 
@@ -136,6 +140,7 @@ int verbose_gain_set(SoapySDRDevice *dev, int gain, size_t chan);
  *
  * \param dev the device handle
  * \param gain_str string of gain element pairs (example LNA=40,VGA=20,AMP=0), or string of overall gain, in dB
+ * \param chan the channel humber
  * \return 0 on success
  */
 int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t chan);
@@ -145,6 +150,7 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t chan);
  *
  * \param dev the device handle
  * \param ppm_error correction value in parts per million (ppm)
+ * \param chan the channel humber
  * \return 0 on success
  */
 
@@ -155,6 +161,7 @@ int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t chan);
  *
  * \param dev the device handle
  * \param ant string name of the antenna to use
+ * \param chan the channel humber
  * \return 0 on success
  */
 

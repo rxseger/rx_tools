@@ -102,7 +102,8 @@ int main(int argc, char **argv)
         FILE *file_ch1;
 	int16_t *buffer_ch0;
         int16_t *buffer_ch1;
-
+	double bw = -1;
+	
 	uint8_t *buf8 = NULL;
 	float *fbuf = NULL; // assumed 32-bit
 	char *dev_query = NULL;
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 	size_t nchan = 0;
 	size_t ch;
 	
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:A:N:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:A:N:B:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -145,6 +146,9 @@ int main(int argc, char **argv)
 		case 'A':
 		        ant = optarg;
 		        break;
+		case 'B':
+		        bw = atofs(optarg);
+			break;
 		case 'N':
    		        nchan = atoi(optarg);
 			break;
@@ -242,13 +246,18 @@ int main(int argc, char **argv)
 		verbose_direct_sampling(dev, direct_sampling);
 	}
 
+	if (bw < 0) {
+	  bw = 0.9 * samp_rate;
+	}
 	/* Set the sample rate */
 	/* Set the frequency */
 	/* Set the antenna */
+	/* Set the bandwidth */
 	if (channels == NULL) {
    	        verbose_set_sample_rate(dev, samp_rate, 0);
 	        verbose_set_frequency(dev, frequency, 0);
 	        verbose_set_antenna(dev, ant, 0);
+		verbose_set_bandwidth(dev, bw, 0);
 	  	if (NULL == gain_str) {
 		        /* Enable automatic gain */
 		  verbose_auto_gain(dev, 0);
@@ -262,6 +271,7 @@ int main(int argc, char **argv)
 	           verbose_set_sample_rate(dev, samp_rate, channels[ch]);
 		   verbose_set_frequency(dev, frequency, channels[ch]);
 		   verbose_set_antenna(dev, ant, channels[ch]);
+		   verbose_set_bandwidth(dev, bw, channels[ch]);
 		   if (NULL == gain_str) {
 		     /* Enable automatic gain */
 		     verbose_auto_gain(dev, channels[ch]);
