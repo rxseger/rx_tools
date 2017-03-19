@@ -42,7 +42,7 @@
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
 static int do_exit = 0;
-static uint32_t samples_to_read = 0;
+static uint64_t samples_to_read = 0;
 static SoapySDRDevice *dev = NULL;
 static SoapySDRStream *stream = NULL;
 
@@ -62,6 +62,7 @@ void usage(void)
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
 		"\t[-A Name of antenna to use]\n"
 		"\t[-N Number of receive channels to use]\n"
+                "\t[-B Bandwidth of HW receive channel to use]\n"
 		"\tfilename0 filename1 (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
 #endif
 	char *filename0 = NULL;
         char *filename1 = NULL;
-	int n_read;
+	int64_t n_read;
 	int r, opt;
 	char *gain_str = NULL;
 	int ppm_error = 0;
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			// half of I/Q pair count (double for one each of I and Q)
-			samples_to_read = (uint32_t)atofs(optarg) * 2;
+			samples_to_read = (uint64_t)atofs(optarg) * 2;
 			break;
 		case 'S':
 			sync_mode = 1;
@@ -324,7 +325,7 @@ int main(int argc, char **argv)
 			int flags = 0;
 			long long timeNs = 0;
 			long timeoutNs = 1000000;
-			int n_read = 0, r, i;
+			int64_t n_read = 0, r, i;
 
 			r = SoapySDRDevice_readStream(dev, stream, buffs, out_block_size, &flags, &timeNs, timeoutNs);
 
@@ -341,7 +342,7 @@ int main(int argc, char **argv)
 				fprintf(stderr, "WARNING: sync read failed. %d\n", r);
 			}
 
-			if ((samples_to_read > 0) && (samples_to_read < (uint32_t)n_read)) {
+			if ((samples_to_read > 0) && (samples_to_read < (uint64_t)n_read)) {
 				n_read = samples_to_read;
 				do_exit = 1;
 			}
