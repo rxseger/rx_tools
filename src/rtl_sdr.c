@@ -459,7 +459,7 @@ int main(int argc, char **argv)
 			    // (Always reading in CS16 to support >8-bit devices)
 			    if (fwrite(buffer_ch[ch], sizeof(int16_t), n_read, file_ch[ch]) != (size_t)n_read) {
 			      fprintf(stderr, "Short write, samples lost, exiting!\n");
-			      break;
+			      do_exit = 1;
 			    }
 
 			  } else if (output_format == SOAPY_SDR_CS8) {
@@ -468,7 +468,7 @@ int main(int argc, char **argv)
 			    }
 			    if (fwrite(buf8, sizeof(uint8_t), n_read, file_ch[ch]) != (size_t)n_read) {
 			      fprintf(stderr, "Short write, samples lost, exiting!\n");
-			      break;
+			      do_exit = 1;
 			    }
 			  } else if (output_format == SOAPY_SDR_CU8) {
 			    for (i = 0; i < n_read; ++i) {
@@ -476,7 +476,7 @@ int main(int argc, char **argv)
 			    }
 			    if (fwrite(buf8, sizeof(uint8_t), n_read, file_ch[ch]) != (size_t)n_read) {
 			      fprintf(stderr, "Short write, samples lost, exiting!\n");
-			      break;
+			      do_exit = 1;
 			    }
 			  } else if (output_format == SOAPY_SDR_CF32) {
 			    for (i = 0; i < n_read; ++i) {
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
 			    }
 			    if (fwrite(fbuf, sizeof(float), n_read, file_ch[ch]) != (size_t)n_read) {
 			      fprintf(stderr, "Short write, samples lost, exiting!\n");
-			      break;
+			      do_exit = 1;
 			    }
 			  }
 			}
