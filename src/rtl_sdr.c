@@ -180,11 +180,9 @@ int main(int argc, char **argv)
 	while ((opt = getopt_long(argc, argv, "d:f:g:s:b:n:p:D:SF:A:N:B:", lg_opts, &option_idx)) != -1) {
 		switch (opt) {
 		case 0:
-		  printf("We got %s\n", lg_opts[option_idx].name);
 		  for (o = 0; o < sizeof(base_opt) / sizeof(char *); o++) {
 		    if (strncmp(base_opt[o], lg_opts[option_idx].name, strlen(base_opt[o])) == 0) {
 		      sscanf(&lg_opts[option_idx].name[strlen(base_opt[o])], "%d", &ch);
-		      printf("   for channel %d\n", ch);
 		      
 		      switch (base_opt[o][0]) {
 		      case 'f':
@@ -269,12 +267,14 @@ int main(int argc, char **argv)
 			direct_sampling = atoi(optarg);
 			break;
 		default:
+                        printf("unknown option! - %d\n", opt);
 			usage();
 			break;
 		}
 	}
 
-	if (argc <= optind + nchan) {
+	if (argc != optind + nchan) {
+                printf("\nNot enough args for channel count\n\n");
 		usage();
 	} else {
 	  for (ch = 0; ch < nchan; ch++) {
