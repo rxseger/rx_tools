@@ -127,6 +127,10 @@ int main(int argc, char **argv)
 	int option_idx;
 	
 	lg_opts = malloc(sizeof(struct option) * (MAX_NUM_CHANNELS * (sizeof(base_opt) / sizeof(char *) + 2)));
+	if (lg_opts == NULL) {
+	  fprintf(stderr, "Failed to malloc data for lg_opts!!\n");
+	  exit(10);
+	}
 	
 	for (ch = 0; ch < MAX_NUM_CHANNELS; ch++) {
 	  filename[ch] = NULL;
@@ -150,6 +154,11 @@ int main(int argc, char **argv)
 	  count++;
 	  for(ch = 0; ch < MAX_NUM_CHANNELS; ch++) {
 	    tmp_name = malloc(strlen(base_opt[o]) + 10);
+	    if (tmp_name == NULL) {
+	      fprintf(stderr, "Failed to malloc data for tmp_name!!\n");
+	      exit(10);
+	    }
+
 	    if (MAX_NUM_CHANNELS > 9) {
 	      snprintf(tmp_name, strlen(base_opt[o]) + 10, "%s%02d", base_opt[o], ch);
 	    } else {
@@ -286,12 +295,24 @@ int main(int argc, char **argv)
 
 	for(ch = 0; ch < nchan; ch++) {
 	  buffer_ch[ch] = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
+	  if (buffer_ch[ch] == NULL) {
+	    fprintf(stderr, "Failed to malloc data for buffer_ch[%d]!!\n", ch);
+	    exit(10);
+	  }
 	}
 	
 	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
 		buf8 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS8));
+		if (buf8 == NULL) {
+		  fprintf(stderr, "Failed to malloc data for buf8!!\n");
+		  exit(10);
+		}
 	} else if (output_format == SOAPY_SDR_CF32) {
 		fbuf = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CF32));
+		if (fbuf == NULL) {
+		  fprintf(stderr, "Failed to malloc data for fbuf!!\n");
+		  exit(10);
+		}
 	}
 
 	int tmp_stdout = suppress_stdout_start();
@@ -299,6 +320,10 @@ int main(int argc, char **argv)
 
 	if (nchan > 0) {
 	  channels = calloc(nchan, sizeof(size_t));
+	  if (channels == NULL) {
+	    fprintf(stderr, "Failed to malloc data for channels!!\n");
+	    exit(10);
+	  }
 	  for(ch = 0; ch < nchan; ch++) {
 	    channels[ch] = ch;
 	  }
