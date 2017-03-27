@@ -42,22 +42,22 @@
 #ifdef _MSC_VER
 struct tm *localtime_r (const time_t *timer, struct tm *result)
 {
-    struct tm *local_result = localtime (timer);
-    if (local_result == NULL || result == NULL) return NULL;
-    memcpy (result, local_result, sizeof (struct tm));
-    return result;
+	struct tm *local_result = localtime (timer);
+	if (local_result == NULL || result == NULL) return NULL;
+	memcpy (result, local_result, sizeof (struct tm));
+	return result;
 }
 
 //http://unixpapa.com/incnote/string.html
 char * strsep(char **sp, char *sep)
 {
-    char *p, *s;
-    if (sp == NULL || *sp == NULL || **sp == '\0') return(NULL);
-    s = *sp;
-    p = s + strcspn(s, sep);
-    if (*p != '\0') *p++ = '\0';
-    *sp = p;
-    return(s);
+	char *p, *s;
+	if (sp == NULL || *sp == NULL || **sp == '\0') return(NULL);
+	s = *sp;
+	p = s + strcspn(s, sep);
+	if (*p != '\0') *p++ = '\0';
+	*sp = p;
+	return(s);
 }
 #endif
 
@@ -137,13 +137,13 @@ double atofp(char *s)
 int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t chan)
 {
 	int r;
-
+	
 	SoapySDRKwargs args = {0};
         r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, chan, (double)frequency, &args);
         if (r != 0) {
-                fprintf(stderr, "WARNING: Failed to set center freq. (chan 0)\n");
+                fprintf(stderr, "WARNING: Failed to set center freq. for chan %zd\n", chan);
         } else {
-                fprintf(stderr, "Tuned to %u Hz.\n", frequency);
+                fprintf(stderr, "Tuned to %u Hz on channel %zd.\n", frequency, chan);
         }
 
 	return r;
@@ -153,16 +153,16 @@ int verbose_set_antenna(SoapySDRDevice *dev, const char * ant, size_t chan)
 {
 	int r;
 	if (ant != NULL) {
-	  r = (int)SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, chan, ant);
+		r = (int)SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, chan, ant);
 	} else {
-	  r = 0;
+		r = 0;
 	}
 	
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set antenna.\n");
+		fprintf(stderr, "WARNING: Failed to set antenna for chan %zd.\n", chan);
 	} else {
 	        char * antval = SoapySDRDevice_getAntenna(dev, SOAPY_SDR_RX, chan);
-		fprintf(stderr, "****Antenna set to %s\n", antval);
+		fprintf(stderr, "****Antenna set to %s on chan %zd\n", antval, chan);
 	}
 
 	return r;
@@ -173,9 +173,9 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t chan
 	int r;
 	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, chan, (double)samp_rate);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+		fprintf(stderr, "WARNING: Failed to set sample rate for chan %zd.\n", chan);
 	} else {
-		fprintf(stderr, "Sampling at %u S/s.\n", samp_rate);
+		fprintf(stderr, "Sampling at %u S/s on chan %zd.\n", samp_rate, chan);
 	}
 
 	return r;
@@ -187,15 +187,17 @@ int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth, size_t chan)
 	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, chan, (double)bandwidth);
 	uint32_t applied_bw = 0;
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set bandwidth.\n");
+		fprintf(stderr, "WARNING: Failed to set bandwidth on chan %zd.\n", chan);
 	} else if (bandwidth > 0) {
 		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, chan);
 		if (applied_bw)
-			fprintf(stderr, "Bandwidth parameter %u Hz resulted in %u Hz.\n", bandwidth, applied_bw);
+			fprintf(stderr, "Bandwidth parameter %u Hz resulted in %u Hz on chan %zd.\n",
+				bandwidth, applied_bw, chan);
 		else
-			fprintf(stderr, "Set bandwidth parameter %u Hz.\n", bandwidth);
+			fprintf(stderr, "Set bandwidth parameter %u Hz on chan %zd.\n", bandwidth, chan);
 	} else {
-		fprintf(stderr, "Bandwidth set to automatic resulted in %u Hz.\n", applied_bw);
+		fprintf(stderr, "Bandwidth set to automatic resulted in %u Hz on chan %zd.\n",
+			applied_bw, chan);
 	}
 	return r;
 }
@@ -322,10 +324,11 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t chan)
 			char *name = args.keys[i];
 			double value = atof(args.vals[i]);
 
-                        fprintf(stderr, "Setting gain element %s: %f dB\n", name, value);
+                        fprintf(stderr, "Setting gain element %s: %f dB on chan %zd\n", name, value, chan);
                         r = SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, chan, name, value);
                         if (r != 0) {
-                                fprintf(stderr, "WARNING: setGainElement(%s, %f) failed: %d\n", name, value, r);
+                                fprintf(stderr, "WARNING: setGainElement(%s, %f, %zd) failed: %d\n",
+					name, value, chan, r);
                         }
   
 		}
@@ -334,9 +337,9 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t chan)
 		double value = atof(gain_str);
 		r = SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, chan, value);
 		if (r != 0) {
-			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+			fprintf(stderr, "WARNING: Failed to set tuner gain for chan %zd.\n", chan);
 		} else {
-			fprintf(stderr, "Tuner gain set to %0.2f dB.\n", value);
+			fprintf(stderr, "Tuner gain set to %0.2f dB on chan %zd.\n", value, chan);
 		}
 
 		// TODO: read back and print each individual getGainElement()s
@@ -352,9 +355,9 @@ int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t chan)
 		return 0;}
 	r = (int)SoapySDRDevice_setFrequencyComponent(dev, SOAPY_SDR_RX, chan, "CORR", (double)ppm_error, NULL);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set ppm error.\n");
+		fprintf(stderr, "WARNING: Failed to set ppm error for chan %zd.\n", chan);
 	} else {
-		fprintf(stderr, "Tuner error set to %i ppm.\n", ppm_error);
+		fprintf(stderr, "Tuner error set to %i ppm for chan %zd.\n", ppm_error, chan);
 	}
 	return r;
 }
