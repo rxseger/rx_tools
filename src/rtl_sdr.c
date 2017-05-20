@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16, channels, nchan);
 	
 	if (r != 0) {
-		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
+		fprintf(stderr, "Failed to open SDR device matching %s.\n", dev_query);
 		exit(1);
 	}
 	
