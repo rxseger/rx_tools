@@ -1014,7 +1014,7 @@ static void *controller_thread_fn(void *arg)
 		if (!dongle.offset_tuning)
 			fprintf(stderr, "  frequency is away from parametrized one, to avoid negative impact from dc\n");
 	}
-	verbose_set_frequency(dongle.dev, dongle.freq);
+	verbose_set_frequency(dongle.dev, dongle.freq, 0);
 	fprintf(stderr, "Oversampling input by: %ix.\n", demod.downsample);
 	fprintf(stderr, "Oversampling output by: %ix.\n", demod.post_downsample);
 	fprintf(stderr, "Buffer size: %0.2fms\n",
@@ -1023,7 +1023,7 @@ static void *controller_thread_fn(void *arg)
 	/* Set the sample rate */
 	if (verbosity)
 		fprintf(stderr, "verbose_set_sample_rate(%.0f Hz)\n", (double)dongle.rate);
-	verbose_set_sample_rate(dongle.dev, dongle.rate);
+	verbose_set_sample_rate(dongle.dev, dongle.rate, 0);
 	fprintf(stderr, "Output at %u Hz.\n", demod.rate_in/demod.post_downsample);
 
 	SoapySDRKwargs args = {0};
@@ -1367,7 +1367,8 @@ int main(int argc, char **argv)
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
 	tmp_stdout = suppress_stdout_start();
-	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream, SOAPY_SDR_CS16);
+	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream, SOAPY_SDR_CS16,
+			      NULL, 0);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
@@ -1395,16 +1396,16 @@ int main(int argc, char **argv)
 
 	/* Set the tuner gain */
 	if (dongle.gain_str == NULL) {
-		verbose_auto_gain(dongle.dev);
+	  verbose_auto_gain(dongle.dev, 0);
 	} else {
-		verbose_gain_str_set(dongle.dev, dongle.gain_str);
+	  verbose_gain_str_set(dongle.dev, dongle.gain_str, 0);
 	}
 
 	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);
 
-	verbose_ppm_set(dongle.dev, dongle.ppm_error);
+	verbose_ppm_set(dongle.dev, dongle.ppm_error, 0);
 
- 	verbose_set_bandwidth(dongle.dev, dongle.bandwidth);
+ 	verbose_set_bandwidth(dongle.dev, dongle.bandwidth, 0);
 
 	if (verbosity && dongle.bandwidth)
 	{
