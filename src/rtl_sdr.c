@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 	        verbose_set_frequency(dev, frequency[0], 0);
 	        verbose_set_antenna(dev, ant[0], 0);
 		verbose_set_bandwidth(dev, bw[0], 0);
-	  	if (NULL == gain_str) {
+	  	if (NULL == gain_str[0]) {
 		        /* Enable automatic gain */
 			verbose_auto_gain(dev, 0);
 		} else {
