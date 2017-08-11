@@ -1208,6 +1208,7 @@ int main(int argc, char **argv)
 	demod_init(&demod);
 	output_init(&output);
 	controller_init(&controller);
+	dongle.dev_query = "";
 
 	while ((opt = getopt(argc, argv, "d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
 		switch (opt) {
@@ -1370,7 +1371,7 @@ int main(int argc, char **argv)
 	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream, SOAPY_SDR_CS16);
 
 	if (!dongle.dev) {
-		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dongle.dev_query);
+		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dongle.dev_query);
 		exit(1);
 	}
 #ifndef _WIN32

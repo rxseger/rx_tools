@@ -822,7 +822,7 @@ int main(int argc, char **argv)
 	int i, length, r, opt, wb_mode = 0;
 	int f_set = 0;
 	char *gain_str = NULL;
-	char *dev_query = NULL;
+	char *dev_query = "";
 	int ppm_error = 0;
 	int interval = 10;
 	int fft_threads = 1;
@@ -949,7 +949,7 @@ int main(int argc, char **argv)
 	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
 
 	if (r != 0) {
-		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
+		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
 		exit(1);
 	}
 

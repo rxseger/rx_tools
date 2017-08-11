@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 	int16_t *buffer;
 	uint8_t *buf8 = NULL;
 	float *fbuf = NULL; // assumed 32-bit
-	char *dev_query = NULL;
+	char *dev_query = "";
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
 
 	if (r != 0) {
-		fprintf(stderr, "Failed to open rtlsdr device matching %s.\n", dev_query);
+		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
 		exit(1);
 	}
 
