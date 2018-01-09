@@ -821,6 +821,7 @@ int main(int argc, char **argv)
 	char *filename = NULL;
 	int i, length, r, opt, wb_mode = 0;
 	int f_set = 0;
+	char *antenna_str = NULL;
 	char *gain_str = NULL;
 	char *dev_query = "";
 	int ppm_error = 0;
@@ -840,8 +841,11 @@ int main(int argc, char **argv)
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 
-	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
+	while ((opt = getopt(argc, argv, "a:f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
 		switch (opt) {
+		case 'a':
+			antenna_str = optarg;
+			break;
 		case 'f': // lower:upper:bin_size
 			freq_optarg = strdup(optarg);
 			f_set = 1;
@@ -974,6 +978,11 @@ int main(int argc, char **argv)
 
 	if (offset_tuning) {
 		verbose_offset_tuning(dev);
+	}
+
+	/* Set antenna */
+	if (antenna_str != NULL) {
+		verbose_antenna_str_set(dev, antenna_str);
 	}
 
 	/* Set the tuner gain */

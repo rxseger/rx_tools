@@ -279,6 +279,17 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 	return r;
 }
 
+int verbose_antenna_str_set(SoapySDRDevice *dev, char *antenna_str)
+{
+	int r;
+
+	fprintf(stderr, "Setting antenna to %s\n", antenna_str);
+	r = SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, 0, antenna_str);
+	if (r != 0) {
+		fprintf(stderr, "WARNING: setAntenna(%s) failed: %d\n", r);
+	}
+}
+
 int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 {
 	SoapySDRKwargs args = {0};
