@@ -60,6 +60,7 @@ void usage(void)
 		"\t[-F output format, CU8|CS8|CS16|CF32 (default: CU8)]\n"
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
+		"\t[-a antenna (default: not set)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
@@ -104,9 +105,13 @@ int main(int argc, char **argv)
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
 	char *output_format = SOAPY_SDR_CU8;
+	char *antenna = "";
 
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:")) != -1) {
+	while ((opt = getopt(argc, argv, "a:d:f:g:s:b:n:p:D:SF:")) != -1) {
 		switch (opt) {
+		case 'a':
+			antenna = optarg;
+			break;
 		case 'd':
 			dev_query = optarg;
 			break;
@@ -219,6 +224,14 @@ int main(int argc, char **argv)
 	} else {
 		/* Enable manual gain */
 		verbose_gain_str_set(dev, gain_str);
+	}
+
+	if (strlen(antenna) > 0) {
+		r = SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, 0, antenna);
+		if (r != 0) {
+			fprintf(stderr, "Failed to set antenna: '%s'.\n", antenna);
+			exit(1);
+		}
 	}
 
 	verbose_ppm_set(dev, ppm_error);

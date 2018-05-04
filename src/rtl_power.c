@@ -135,6 +135,7 @@ void usage(void)
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-S tuner_sleep_usec (default: 5000)]\n"
 		"\t[-R tuner_retry_max (default: 3)]\n"
+		"\t[-a antenna (default: not set)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n"
 		"\t (omitting the filename also uses stdout)\n"
 		"\n"
@@ -574,7 +575,8 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	}
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune at %lli Hz (%i of %i attempts), r=%d, flags=%d (try increasing -S or -R).\n", freq, i + 1, tuner_retry_max, r, flags);}
+		fprintf(stderr, "Error: bad retune at %lli Hz (%i of %i attempts), r=%d, flags=%d (try increasing -S or -R).\n", freq, i + 1, tuner_retry_max, r, flags);
+	}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -823,6 +825,7 @@ int main(int argc, char **argv)
 	int f_set = 0;
 	char *gain_str = NULL;
 	char *dev_query = "";
+	char *antenna = "";
 	int ppm_error = 0;
 	int interval = 10;
 	int fft_threads = 1;
@@ -840,7 +843,7 @@ int main(int argc, char **argv)
 	double (*window_fn)(int, int) = rectangle;
 	freq_optarg = "";
 
-	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
+	while ((opt = getopt(argc, argv, "f:i:s:t:d:a:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
 		switch (opt) {
 		case 'f': // lower:upper:bin_size
 			freq_optarg = strdup(optarg);
@@ -848,6 +851,9 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			dev_query = optarg;
+			break;
+	        case 'a':
+			antenna = optarg;
 			break;
 		case 'g':
 			gain_str = optarg;
@@ -951,6 +957,14 @@ int main(int argc, char **argv)
 	if (r != 0) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
 		exit(1);
+	}
+
+	if (strlen(antenna) > 0) {
+		r = SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, 0, antenna);
+		if (r != 0) {
+			fprintf(stderr, "Failed to set antenna: '%s'.\n", antenna);
+			exit(1);
+		}
 	}
 
 	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);

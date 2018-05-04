@@ -118,6 +118,7 @@ struct dongle_state
 	int	  direct_sampling;
 	int	  mute;
 	struct demod_state *demod_target;
+	char *antenna;
 };
 
 struct demod_state
@@ -230,6 +231,7 @@ void usage(void)
 		"\t	offset: enable offset tuning (only e4000 tuner)\n"
 		"\t	wav:    generate WAV header\n"
 		"\t[-q dc_avg_factor for option rdc (default: 9)]\n"
+		"\t[-a Antenna selection (default: not set)]\n"
 		"\tfilename ('-' means stdout)\n"
 		"\t	omitting the filename also uses stdout\n\n"
 		"Experimental options:\n"
@@ -1210,8 +1212,11 @@ int main(int argc, char **argv)
 	controller_init(&controller);
 	dongle.dev_query = "";
 
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
+	while ((opt = getopt(argc, argv, "a:d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
 		switch (opt) {
+		case 'a':
+			dongle.antenna = optarg;
+			break;
 		case 'd':
 			dongle.dev_query = optarg;
 			break;
@@ -1402,6 +1407,14 @@ int main(int argc, char **argv)
 	}
 
 	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);
+
+	if (strlen(dongle.antenna) > 0) {
+		r = SoapySDRDevice_setAntenna(dongle.dev, SOAPY_SDR_RX, 0, dongle.antenna);
+		if (r != 0) {
+			fprintf(stderr, "Failed to set antenna: '%s'.\n", dongle.antenna);
+			exit(1);
+		}
+	}
 
 	verbose_ppm_set(dongle.dev, dongle.ppm_error);
 
