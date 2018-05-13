@@ -239,6 +239,7 @@ int main(int argc, char **argv)
 			for (ch = 0; ch < MAX_NUM_CHANNELS; ch++) {
 				ant[ch] = optarg;
 			}
+			printf("Setting antenna to %s\n", optarg);
 		        break;
 		case 'B':
 			for (ch = 0; ch < MAX_NUM_CHANNELS; ch++) {

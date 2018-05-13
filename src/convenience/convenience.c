@@ -141,7 +141,8 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t chan)
 	SoapySDRKwargs args = {0};
         r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, chan, (double)frequency, &args);
         if (r != 0) {
-                fprintf(stderr, "WARNING: Failed to set center freq. for chan %zu\n", chan);
+                fprintf(stderr, "ERROR: Failed to set center freq. for chan %zu\n", chan);
+		exit(10);
         } else {
                 fprintf(stderr, "Tuned to %u Hz on channel %zu.\n", frequency, chan);
         }
@@ -159,7 +160,8 @@ int verbose_set_antenna(SoapySDRDevice *dev, const char * ant, size_t chan)
 	}
 	
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set antenna for chan %zu.\n", chan);
+		fprintf(stderr, "ERROR: Failed to set antenna for chan %zu.\n", chan);
+                exit(11);
 	} else {
 	        char * antval = SoapySDRDevice_getAntenna(dev, SOAPY_SDR_RX, chan);
 		fprintf(stderr, "****Antenna set to %s on chan %zu\n", antval, chan);
@@ -173,7 +175,8 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t chan
 	int r;
 	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, chan, (double)samp_rate);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set sample rate for chan %zu.\n", chan);
+		fprintf(stderr, "ERROR: Failed to set sample rate for chan %zu.\n", chan);
+                exit(12);
 	} else {
 		fprintf(stderr, "Sampling at %u S/s on chan %zu.\n", samp_rate, chan);
 	}
@@ -187,7 +190,8 @@ int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth, size_t chan)
 	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, chan, (double)bandwidth);
 	uint32_t applied_bw = 0;
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set bandwidth on chan %zu.\n", chan);
+		fprintf(stderr, "ERROR: Failed to set bandwidth on chan %zu.\n", chan);
+                exit(13);
 	} else if (bandwidth > 0) {
 		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, chan);
 		if (applied_bw)
@@ -218,8 +222,8 @@ int verbose_direct_sampling(SoapySDRDevice *dev, int on)
 	set_value = SoapySDRDevice_readSetting(dev, "direct_samp");
 
 	if (set_value == NULL) {
-		fprintf(stderr, "WARNING: Failed to set direct sampling mode.\n");
-		return r;
+		fprintf(stderr, "ERROR: Failed to set direct sampling mode.\n");
+		exit(14);
 	}
 	if (atoi(set_value) == 0) {
 		fprintf(stderr, "Direct sampling mode disabled.\n");}
@@ -432,6 +436,14 @@ static void show_device_info(SoapySDRDevice *dev)
 		fprintf(stderr, "%.0f ", bandwidths[i]);
 	}
 	fprintf(stderr, "\n");
+
+	args = SoapySDRDevice_getChannelInfo(dev, direction, channel);
+	fprintf(stderr, "Channel info:    ");
+	for (i = 0; i < args.size; ++i) {
+		fprintf(stderr, "%s=%s ", args.keys[i], args.vals[i]);
+	}
+	fprintf(stderr, "\n");
+
 }
 
 int suppress_stdout_start(void) {
