@@ -3,6 +3,7 @@
 ########################################################################
 cmake_minimum_required(VERSION 2.8.0)
 project(rx_tools C)
+set(CMAKE_C_STANDARD 99)
 
 #local include directories first
 include_directories(${PROJECT_SOURCE_DIR}/src/convenience)
