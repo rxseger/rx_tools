@@ -71,9 +71,6 @@
 #define DEFAULT_BUF_LENGTH		(1 * 16384)
 #define BUFFER_DUMP				DEFAULT_BUF_LENGTH
 
-#define MAXIMUM_RATE			2800000
-#define MINIMUM_RATE			1000000
-
 static volatile int do_exit = 0;
 static SoapySDRDevice *dev = NULL;
 static SoapySDRStream *stream = NULL;
@@ -426,7 +423,7 @@ void rms_power(struct tuning_state *ts)
 	ts->samples += 1;
 }
 
-void frequency_range(char *arg, double crop)
+void frequency_range(char *arg, double crop, uint32_t minimum_rate, uint32_t maximum_rate)
 /* flesh out the tunes[] for scanning */
 // do we want the fewest ranges (easy) or the fewest bins (harder)?
 {
@@ -454,17 +451,17 @@ void frequency_range(char *arg, double crop)
 	for (i=1; i<1500; i++) {
 		bw_seen = (upper - lower) / i;
 		bw_used = (int64_t)((double)(bw_seen) / (1.0 - crop));
-		if (bw_used > MAXIMUM_RATE) {
+		if (bw_used > maximum_rate) {
 			continue;}
 		tune_count = i;
 		break;
 	}
 	/* unless small bandwidth */
-	if (bw_used < MINIMUM_RATE) {
+	if (bw_used < minimum_rate) {
 		tune_count = 1;
-		downsample = MAXIMUM_RATE / bw_used;
+		downsample = maximum_rate / bw_used;
 		if (downsample <= 0) {
-			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, bw_used, downsample);
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", maximum_rate, bw_used, downsample);
 			exit(1);
 		}
 		bw_used = bw_used * downsample;
@@ -473,7 +470,7 @@ void frequency_range(char *arg, double crop)
 		downsample_passes = (int)log2(downsample);
 		downsample = 1 << downsample_passes;
 		if (downsample <= 0) {
-			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, downsample_passes, bw_used, downsample);
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", maximum_rate, downsample_passes, bw_used, downsample);
 			exit(1);
 		}
 		bw_used = (int)((double)(bw_seen * downsample) / (1.0 - crop));
@@ -488,7 +485,7 @@ void frequency_range(char *arg, double crop)
 			break;}
 	}
 	/* unless giant bins */
-	if (max_size >= MINIMUM_RATE) {
+	if (max_size >= minimum_rate) {
 		bw_seen = max_size;
 		bw_used = max_size;
 		tune_count = (upper - lower) / bw_seen;
@@ -529,6 +526,7 @@ void frequency_range(char *arg, double crop)
 		ts->buf_len = buf_len;
 	}
 	/* report */
+	fprintf(stderr, "Rates: minimum %d, maximum %d\n", minimum_rate, maximum_rate);
 	fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
 	fprintf(stderr, "Dongle bandwidth: %lliHz\n", bw_used);
 	fprintf(stderr, "Downsampling by: %llix\n", downsample);
@@ -838,6 +836,13 @@ int main(int argc, char **argv)
 	char t_str[50];
 	struct tm cal_time = {0};
 	double (*window_fn)(int, int) = rectangle;
+
+	long unsigned int minimum_rate, maximum_rate;
+	double *rates = NULL;
+	int direction = SOAPY_SDR_RX;
+	int channel = 0;
+	size_t len = 0;
+
 	freq_optarg = "";
 
 	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
@@ -930,11 +935,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	frequency_range(freq_optarg, crop);
-
-	if (tune_count == 0) {
-		usage();}
-
 	if (argc <= optind) {
 		filename = "-";
 	} else {
@@ -947,6 +947,19 @@ int main(int argc, char **argv)
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
 	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
+
+	// Find maximum and minimum sampling rates for this device
+	rates = SoapySDRDevice_listSampleRates(dev, direction, channel, &len);
+	maximum_rate = minimum_rate = rates[1];
+	for (i = 0; i < len; ++i) {
+		if (rates[i] > maximum_rate) maximum_rate = rates[i];
+		if (rates[i] < minimum_rate) minimum_rate = rates[i];
+	}
+
+	frequency_range(freq_optarg, crop, minimum_rate, maximum_rate);
+
+	if (tune_count == 0) {
+		usage();}
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
