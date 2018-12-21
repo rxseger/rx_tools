@@ -186,6 +186,16 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut);
 int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t channel, const char *format);
 
 /*!
+ * Apply settings to device
+ *
+ * \param dev the device handle
+ * \param sdr_settings settings to apply
+ * \return 0 on success
+ */
+
+int verbose_settings(SoapySDRDevice *dev, const char *sdr_settings);
+
+/*!
  * Start redirecting stdout to stderr to avoid unwanted stdout emissions.
  * Applications should call this if they want to use stdout for their own output,
  * before verbose_device_start(), and optionally stop after configuring all settings.

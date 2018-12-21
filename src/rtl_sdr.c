@@ -65,6 +65,7 @@ void usage(void)
 		"\t[-F output format, CU8|CS8|CS12|CS16|CF32 (default: CU8)]\n"
 		"\t[-S force sync output (default: async)]\n"
 		"\t[-D direct_sampling_mode, 0 (default/off), 1 (I), 2 (Q), 3 (no-mod)]\n"
+		"\t[-t SDR settings (ex: rfnotch_ctrl=false,dabnotch_ctrlb=true)]\n"
 		"\tfilename (a '-' dumps samples to stdout)\n\n");
 	exit(1);
 }
@@ -136,8 +137,9 @@ int main(int argc, char **argv)
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
 	char const *input_format = SOAPY_SDR_CS16;
 	char const *output_format = SOAPY_SDR_CU8;
+	char *sdr_settings = NULL;
 
-	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:t:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -187,6 +189,9 @@ int main(int argc, char **argv)
             break;
 		case 'D':
 			direct_sampling = atoi(optarg);
+			break;
+		case 't':
+			sdr_settings = optarg;
 			break;
 		default:
 			usage();
@@ -299,6 +304,9 @@ int main(int argc, char **argv)
 	}
 	/* Reset endpoint before we start reading from it (mandatory) */
 	verbose_reset_buffer(dev);
+
+	if(sdr_settings)
+		verbose_settings(dev, sdr_settings);
 
 	if (true || sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
