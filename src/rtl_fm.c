@@ -1368,7 +1368,8 @@ int main(int argc, char **argv)
 	ACTUAL_BUF_LENGTH = lcm_post[demod.post_downsample] * DEFAULT_BUF_LENGTH;
 
 	tmp_stdout = suppress_stdout_start();
-	verbose_device_search(dongle.dev_query, &dongle.dev, &dongle.stream, SOAPY_SDR_CS16);
+	verbose_device_search(dongle.dev_query, &dongle.dev);
+	verbose_stream_setup(dongle.dev, &dongle.stream, SOAPY_SDR_CS16);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dongle.dev_query);

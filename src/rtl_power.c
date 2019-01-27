@@ -946,12 +946,13 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Reporting every %i seconds\n", interval);
 
-	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
+	r = verbose_device_search(dev_query, &dev);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
 		exit(1);
 	}
+	verbose_stream_setup(dev, &stream, SOAPY_SDR_CS16);
 
 	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
 

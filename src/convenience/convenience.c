@@ -322,6 +322,14 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 	return r;
 }
 
+int verbose_antenna_str_set(SoapySDRDevice *dev, int channel, char *antenna_str)
+{
+	int r;
+	fprintf(stderr, "Using antenna '%s' on channel %i\n", antenna_str, channel);
+	r = SoapySDRDevice_setAntenna(dev, SOAPY_SDR_RX, channel, antenna_str);
+	return r;
+}
+
 int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error)
 {
 	int r;
@@ -371,41 +379,46 @@ static void show_device_info(SoapySDRDevice *dev)
 	}
 	fprintf(stderr, "\n");
 
-	antennas = SoapySDRDevice_listAntennas(dev, direction, channel, &len);
-	fprintf(stderr, "Found %zu antenna(s): ", len);
-	for (i = 0; i < len; ++i) {
-		fprintf(stderr, "%s ", antennas[i]);
-	}
-	fprintf(stderr, "\n");
+	size_t num_channels = SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX);
+	fprintf(stderr, "Found %zu channel(s) :\n", num_channels);
+	for(int c = 0; c<num_channels; ++c){
+		fprintf(stderr, "Channel %i :\n", c);
+		antennas = SoapySDRDevice_listAntennas(dev, direction, channel, &len);
+		fprintf(stderr, "  Found %zu antenna(s): ", len);
+		for (i = 0; i < len; ++i) {
+			fprintf(stderr, "%s ", antennas[i]);
+		}
+		fprintf(stderr, "\n");
 
 
-	gains = SoapySDRDevice_listGains(dev, direction, channel, &len);
-	fprintf(stderr, "Found %zu gain(s): ", len);
-	for (i = 0; i < len; ++i) {
-		fprintf(stderr, "%s ", gains[i]);
-	}
-	fprintf(stderr, "\n");
+		gains = SoapySDRDevice_listGains(dev, direction, channel, &len);
+		fprintf(stderr, "  Found %zu gain(s): ", len);
+		for (i = 0; i < len; ++i) {
+			fprintf(stderr, "%s ", gains[i]);
+		}
+		fprintf(stderr, "\n");
 
-	frequencies = SoapySDRDevice_listFrequencies(dev, direction, channel, &len);
-	fprintf(stderr, "Found %zu frequencies: ", len);
-	for (i = 0; i < len; ++i) {
-		fprintf(stderr, "%s ", frequencies[i]);
-	}
-	fprintf(stderr, "\n");
+		frequencies = SoapySDRDevice_listFrequencies(dev, direction, channel, &len);
+		fprintf(stderr, "  Found %zu frequencies: ", len);
+		for (i = 0; i < len; ++i) {
+			fprintf(stderr, "%s ", frequencies[i]);
+		}
+		fprintf(stderr, "\n");
 
-	rates = SoapySDRDevice_listSampleRates(dev, direction, channel, &len);
-	fprintf(stderr, "Found %zu sample rates: ", len);
-	for (i = 0; i < len; ++i) {
-		fprintf(stderr, "%.0f ", rates[i]);
-	}
-	fprintf(stderr, "\n");
+		rates = SoapySDRDevice_listSampleRates(dev, direction, channel, &len);
+		fprintf(stderr, "  Found %zu sample rates: ", len);
+		for (i = 0; i < len; ++i) {
+			fprintf(stderr, "%.0f ", rates[i]);
+		}
+		fprintf(stderr, "\n");
 
-	bandwidths = SoapySDRDevice_listBandwidths(dev, direction, channel, &len);
-	fprintf(stderr, "Found %zu bandwidths: ", len);
-	for (i = 0; i < len; ++i) {
-		fprintf(stderr, "%.0f ", bandwidths[i]);
+		bandwidths = SoapySDRDevice_listBandwidths(dev, direction, channel, &len);
+		fprintf(stderr, "  Found %zu bandwidths: ", len);
+		for (i = 0; i < len; ++i) {
+			fprintf(stderr, "%.0f ", bandwidths[i]);
+		}
+		fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "\n");
 }
 
 int suppress_stdout_start(void) {
@@ -430,7 +443,7 @@ void suppress_stdout_stop(int tmp_stdout) {
 }
 
 
-int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format)
+int verbose_device_search(char *s, SoapySDRDevice **devOut)
 {
 	size_t device_count = 0;
 	size_t i = 0;
@@ -439,7 +452,6 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 	char vendor[256], product[256], serial[256];
 	SoapySDRDevice *dev = NULL;
 
-	SoapySDRKwargs stream_args = {0};
 
 	dev = SoapySDRDevice_makeStrArgs(s);
 	if (!dev) {
@@ -449,12 +461,23 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **str
 
 	show_device_info(dev);
 
-	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, format, NULL, 0, &stream_args) != 0) {
+	*devOut = dev;
+	return 0;
+}
+
+int verbose_stream_setup(SoapySDRDevice *dev, SoapySDRStream **streamOut, int channel, const char *format)
+{
+	SoapySDRKwargs stream_args = {0};
+
+	size_t num_channels = SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX);
+	if(((size_t) channel) >= num_channels){
+		fprintf(stderr, "Invalid channel selected\n");
+		return -3;
+	}
+	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, format, &channel, 1, &stream_args) != 0) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
 		return -3;
 	}
-
-	*devOut = dev;
 	return 0;
 }
 

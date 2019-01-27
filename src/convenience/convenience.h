@@ -141,13 +141,20 @@ int verbose_gain_set(SoapySDRDevice *dev, int gain);
 int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str);
 
 /*!
+* Set antenna and channel
+* \param dev the device handle
+* \param channel number of channel (0 is default)
+* \param antenna_str name of the antenna as reported by SoapySDR
+*/
+int verbose_antenna_str_set(SoapySDRDevice *dev, int channel, char *antenna_str);
+
+/*!
  * Set the frequency correction value for the device and report status on stderr.
  *
  * \param dev the device handle
  * \param ppm_error correction value in parts per million (ppm)
  * \return 0 on success
  */
-
 int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error);
 
 /*!
@@ -164,12 +171,19 @@ int verbose_reset_buffer(SoapySDRDevice *dev);
  *
  * \param s a string to be parsed
  * \param devOut device output returned
+ * \return dev 0 if successful
+ */
+int verbose_device_search(char *s, SoapySDRDevice **devOut);
+
+/*!
+ * Open a stream on the pre-configured device
+ *
  * \param streamOut stream output returned
+ * \param channel channel to listen
  * \param format stream format (such as SOAPY_SDR_CS16)
  * \return dev 0 if successful
  */
-
-int verbose_device_search(char *s, SoapySDRDevice **devOut, SoapySDRStream **streamOut, const char *format);
+int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, int channel, const char *format);
 
 /*!
  * Start redirecting stdout to stderr to avoid unwanted stdout emissions.
