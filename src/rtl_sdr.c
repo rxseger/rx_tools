@@ -54,6 +54,8 @@ void usage(void)
 		"\t[-s samplerate (default: 2048000 Hz)]\n"
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
+		"\t[-c channel number (ex: 0)]\n"
+		"\t[-a antenna (ex: 'Tuner 1 50 ohm')]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b output_block_size (default: 16 * 16384)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
@@ -92,6 +94,8 @@ int main(int argc, char **argv)
 	int n_read;
 	int r, opt;
 	char *gain_str = NULL;
+  int channel = 0;
+  char *antenna_str = NULL;
 	int ppm_error = 0;
 	int sync_mode = 0;
 	int direct_sampling = 0;
@@ -105,7 +109,7 @@ int main(int argc, char **argv)
 	uint32_t out_block_size = DEFAULT_BUF_LENGTH;
 	char *output_format = SOAPY_SDR_CU8;
 
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:n:p:D:SF:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SF:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -115,6 +119,12 @@ int main(int argc, char **argv)
 			break;
 		case 'g':
 			gain_str = optarg;
+			break;
+		case 'c':
+			channel = (int)atoi(optarg);
+			break;
+		case 'a':
+			antenna_str = optarg;
 			break;
 		case 's':
 			samp_rate = (uint32_t)atofs(optarg);
@@ -182,7 +192,7 @@ int main(int argc, char **argv)
 
 	int tmp_stdout = suppress_stdout_start();
 	// TODO: allow choosing input format, see https://www.reddit.com/r/RTLSDR/comments/4tpxv7/rx_tools_commandline_sdr_tools_for_rtlsdr_bladerf/d5ohfse?context=3
-	r = verbose_device_search(dev_query, &dev, &stream, SOAPY_SDR_CS16);
+	r = verbose_device_search(dev_query, &dev);
 
 	if (r != 0) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
@@ -221,6 +231,13 @@ int main(int argc, char **argv)
 		verbose_gain_str_set(dev, gain_str);
 	}
 
+	if (NULL != antenna_str){
+		r = verbose_antenna_str_set(dev, channel, antenna_str);
+		if(r != 0){
+			fprintf(stderr, "Failed to set antenna");
+		}
+	}
+
 	verbose_ppm_set(dev, ppm_error);
 
 	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
@@ -236,6 +253,10 @@ int main(int argc, char **argv)
 		}
 	}
 
+	r = verbose_stream_setup(dev, &stream, channel, SOAPY_SDR_CS16);
+	if(r != 0){
+		fprintf(stderr, "Failed to setup stream\n");
+	}
 	/* Reset endpoint before we start reading from it (mandatory) */
 	verbose_reset_buffer(dev);
 
