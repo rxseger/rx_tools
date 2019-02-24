@@ -184,9 +184,9 @@ int main(int argc, char **argv)
 	}
 
 	buffer = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
-	if (output_format == SOAPY_SDR_CS8 || output_format == SOAPY_SDR_CU8) {
+	if (strcmp(output_format, SOAPY_SDR_CS8) == 0 || strcmp(output_format, SOAPY_SDR_CU8) == 0) {
 		buf8 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS8));
-	} else if (output_format == SOAPY_SDR_CF32) {
+	} else if (strcmp(output_format, SOAPY_SDR_CF32) == 0) {
 		fbuf = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CF32));
 	}
 
@@ -296,14 +296,14 @@ int main(int argc, char **argv)
 			}
 
 			// TODO: read these formats natively from SoapySDR (setupStream) instead of converting ourselves?
-			if (output_format == SOAPY_SDR_CS16) {
+			if (strcmp(output_format, SOAPY_SDR_CS16) == 0) {
 				// The "native" format we read in, write out no conversion needed
 				// (Always reading in CS16 to support >8-bit devices)
 				if (fwrite(buffer, sizeof(int16_t), n_read, file) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (output_format == SOAPY_SDR_CS8) {
+			} else if (strcmp(output_format, SOAPY_SDR_CS8) == 0) {
 				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
 				}
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (output_format == SOAPY_SDR_CU8) {
+			} else if (strcmp(output_format, SOAPY_SDR_CU8) == 0) {
 				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
 				}
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (output_format == SOAPY_SDR_CF32) {
+			} else if (strcmp(output_format, SOAPY_SDR_CF32) == 0) {
 				for (i = 0; i < n_read; ++i) {
 					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
 				}
