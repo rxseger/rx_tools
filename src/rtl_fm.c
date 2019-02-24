@@ -1369,7 +1369,7 @@ int main(int argc, char **argv)
 
 	tmp_stdout = suppress_stdout_start();
 	verbose_device_search(dongle.dev_query, &dongle.dev);
-	verbose_stream_setup(dongle.dev, &dongle.stream, SOAPY_SDR_CS16);
+	verbose_setup_stream(dongle.dev, &dongle.stream, 0, SOAPY_SDR_CS16);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dongle.dev_query);

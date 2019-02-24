@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	r = verbose_stream_setup(dev, &stream, channel, SOAPY_SDR_CS16);
+	r = verbose_setup_stream(dev, &stream, channel, SOAPY_SDR_CS16);
 	if(r != 0){
 		fprintf(stderr, "Failed to setup stream\n");
 	}

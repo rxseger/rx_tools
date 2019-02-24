@@ -465,13 +465,13 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut)
 	return 0;
 }
 
-int verbose_stream_setup(SoapySDRDevice *dev, SoapySDRStream **streamOut, int channel, const char *format)
+int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t channel, const char *format)
 {
 	SoapySDRKwargs stream_args = {0};
 
 	size_t num_channels = SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX);
 	if(((size_t) channel) >= num_channels){
-		fprintf(stderr, "Invalid channel selected\n");
+		fprintf(stderr, "Invalid channel %d selected\n", (int)channel);
 		return -3;
 	}
 	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, format, &channel, 1, &stream_args) != 0) {
