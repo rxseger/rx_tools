@@ -1200,8 +1200,8 @@ int main(int argc, char **argv)
 #ifndef _WIN32
 	struct sigaction sigact;
 #endif
-	int r, opt, k;
 	int custom_ppm = 0;
+	int opt;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
 	dongle_init(&dongle);
@@ -1410,12 +1410,11 @@ int main(int argc, char **argv)
 
 	if (verbosity && dongle.bandwidth)
 	{
-		int r;
 		fprintf(stderr, "Supported bandwidth values in kHz:\n");
 		size_t bw_count = 0;
 		// TODO: well, this is deprecated by getBandwidthRange? SoapySDRRange
 		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, 0, &bw_count);
-		for (k = 0; k < bw_count; ++k) {
+		for (size_t k = 0; k < bw_count; ++k) {
 			fprintf(stderr, "%.1f ", bandwidths[k]);
 		}
 		fprintf(stderr,"\n");
@@ -1449,11 +1448,6 @@ int main(int argc, char **argv)
 		usleep(100000);
 	}
 
-	if (do_exit) {
-		fprintf(stderr, "\nUser cancel, exiting...\n");}
-	else {
-		fprintf(stderr, "\nLibrary error %d, exiting...\n", r);}
-
 	SoapySDRDevice_deactivateStream(dongle.dev, dongle.stream, 0, 0);
 	pthread_join(dongle.thread, NULL);
 	safe_cond_signal(&demod.ready, &demod.ready_m);
@@ -1473,7 +1467,7 @@ int main(int argc, char **argv)
 
 	SoapySDRDevice_closeStream(dongle.dev, dongle.stream);
 	SoapySDRDevice_unmake(dongle.dev);
-	return r >= 0 ? r : -r;
+	return EXIT_SUCCESS;
 }
 
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab

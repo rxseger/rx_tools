@@ -464,7 +464,7 @@ void frequency_range(char *arg, double crop)
 		tune_count = 1;
 		downsample = MAXIMUM_RATE / bw_used;
 		if (downsample <= 0) {
-			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, bw_used, downsample);
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, (long long)bw_used, (long long)downsample);
 			exit(1);
 		}
 		bw_used = bw_used * downsample;
@@ -473,7 +473,7 @@ void frequency_range(char *arg, double crop)
 		downsample_passes = (int)log2(downsample);
 		downsample = 1 << downsample_passes;
 		if (downsample <= 0) {
-			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, downsample_passes, bw_used, downsample);
+			fprintf(stderr, "unsupported bandwidth: MAXIMUM_RATE=%d, downsample_passes=%lli, bw_used=%lli, downsample=%lli\n", MAXIMUM_RATE, (long long)downsample_passes, (long long)bw_used, (long long)downsample);
 			exit(1);
 		}
 		bw_used = (int)((double)(bw_seen * downsample) / (1.0 - crop));
@@ -530,8 +530,8 @@ void frequency_range(char *arg, double crop)
 	}
 	/* report */
 	fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
-	fprintf(stderr, "Dongle bandwidth: %lliHz\n", bw_used);
-	fprintf(stderr, "Downsampling by: %llix\n", downsample);
+	fprintf(stderr, "Dongle bandwidth: %lliHz\n", (long long)bw_used);
+	fprintf(stderr, "Downsampling by: %llix\n", (long long)downsample);
 	fprintf(stderr, "Cropping by: %0.2f%%\n", crop*100);
 	fprintf(stderr, "Total FFT bins: %i\n", tune_count * (1<<bin_e));
 	fprintf(stderr, "Logged FFT bins: %i\n", \
@@ -545,12 +545,12 @@ static int tuner_sleep_usec = 5000;
 static int tuner_retry_max = 3;
 void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 {
-	int n_read, r, i;
+	int r, i;
 
 	SoapySDRKwargs args = {0};
 	r = SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
 	if (r != 0) {
-		fprintf(stderr, "Error: failed to set frequency %lli Hz, r=%d\n", freq, r);
+		fprintf(stderr, "Error: failed to set frequency %lli Hz, r=%d\n", (long long)freq, r);
 		return;
 	}
 
@@ -574,7 +574,7 @@ void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
 	}
 
 	if (r < 0) {
-		fprintf(stderr, "Error: bad retune at %lli Hz (%i of %i attempts), r=%d, flags=%d (try increasing -S or -R).\n", freq, i + 1, tuner_retry_max, r, flags);}
+		fprintf(stderr, "Error: bad retune at %lli Hz (%i of %i attempts), r=%d, flags=%d (try increasing -S or -R).\n", (long long)freq, i + 1, tuner_retry_max, r, flags);}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -667,7 +667,7 @@ int64_t real_conj(int16_t real, int16_t imag)
 
 void scanner(void)
 {
-	int i, j, j2, n_read, offset, bin_e, bin_len, buf_len, ds, ds_p;
+	int i, j, j2, offset, bin_e, bin_len, buf_len, ds, ds_p;
 	int32_t w;
 	int64_t f;
 	struct tuning_state *ts;
@@ -691,9 +691,10 @@ void scanner(void)
 
 		r = SoapySDRDevice_readStream(dev, stream, buffs, buf_len, &flags, &timeNs, timeoutNs);
 
+		//int n_read = 0;
 		if (r >= 0) {
 			// r is number of elements read, elements=complex pairs of 8-bits, so buffer length in bytes is twice
-			n_read = r * 2;
+			//n_read = r * 2;
 		} else {
 			fprintf(stderr, "Error: reading stream %d\n", r);
 			continue;
@@ -789,7 +790,7 @@ void csv_dbm(struct tuning_state *ts)
 	/* Hz low, Hz high, Hz step, samples, dbm, dbm, ... */
 	bin_count = (int)((double)len * (1.0 - ts->crop));
 	bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
-	fprintf(file, "%lli, %lli, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
+	fprintf(file, "%lli, %lli, %.2f, %i, ", (long long)ts->freq - bw2, (long long)ts->freq + bw2,
 		(double)ts->rate / (double)(len*ds), ts->samples);
 	// something seems off with the dbm math
 	i1 = 0 + (int)((double)len * ts->crop * 0.5);
@@ -819,7 +820,7 @@ int main(int argc, char **argv)
 	struct sigaction sigact;
 #endif
 	char *filename = NULL;
-	int i, length, r, opt, wb_mode = 0;
+	int i, length, r, opt = 0;
 	int f_set = 0;
 	char *gain_str = NULL;
 	char *dev_query = "";

@@ -91,7 +91,6 @@ int main(int argc, char **argv)
 	struct sigaction sigact;
 #endif
 	char *filename = NULL;
-	int n_read;
 	int r, opt;
 	char *gain_str = NULL;
   int channel = 0;
@@ -262,7 +261,6 @@ int main(int argc, char **argv)
 
 	if (true || sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
-		SoapySDRKwargs args = {0};
 		if (SoapySDRDevice_activateStream(dev, stream, 0, 0, 0) != 0) {
 			fprintf(stderr, "Failed to activate stream\n");
                         exit(1);

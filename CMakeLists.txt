@@ -46,6 +46,11 @@ if (WIN32)
     list(APPEND COMMON_SOURCES src/getopt/getopt.c)
 endif ()
 
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    #disable warnings for unused parameters
+    add_definitions(-Wno-unused-parameter)
+endif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+
 ########################################################################
 # Helper library
 ########################################################################
