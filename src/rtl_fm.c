@@ -141,7 +141,7 @@ struct demod_state
 	int	  downsample;	/* min 1, max 256 */
 	int	  post_downsample;
 	int	  output_scale;
-	int	  squelch_level, conseq_squelch, squelch_hits, terminate_on_squelch;
+	int	  squelch_level, conseq_squelch, squelch_hits, terminate_on_squelch, squelch_zero;
 	int	  downsample_passes;
 	int	  comp_fir_size;
 	int	  custom_atan;
@@ -228,6 +228,7 @@ void usage(void)
 		"\t	direct: enable direct sampling (bypasses tuner, uses rtl2832 xtal)\n"
 		"\t	no-mod: enable no-mod direct sampling\n"
 		"\t	offset: enable offset tuning (only e4000 tuner)\n"
+		"\t	zero:   emit zeros when squelch active\n"
 		"\t	wav:    generate WAV header\n"
 		"\t[-q dc_avg_factor for option rdc (default: 9)]\n"
 		"\tfilename ('-' means stdout)\n"
@@ -921,13 +922,18 @@ static void *demod_thread_fn(void *arg)
 		if (d->exit_flag) {
 			do_exit = 1;
 		}
-		if (d->squelch_level && d->squelch_hits > d->conseq_squelch) {
+		bool squelch_active = (d->squelch_level && d->squelch_hits > d->conseq_squelch);
+		if (squelch_active && !d->squelch_zero) {
 			d->squelch_hits = d->conseq_squelch + 1;  /* hair trigger */
 			safe_cond_signal(&controller.hop, &controller.hop_m);
 			continue;
 		}
 		pthread_rwlock_wrlock(&o->rw);
-		memcpy(o->result, d->result, 2*d->result_len);
+		if (squelch_active && d->squelch_zero) {
+			memset(o->result, 0, 2*d->result_len);
+		} else {
+			memcpy(o->result, d->result, 2*d->result_len);
+		}
 		o->result_len = d->result_len;
 		pthread_rwlock_unlock(&o->rw);
 		safe_cond_signal(&o->ready, &o->ready_m);
@@ -1277,6 +1283,8 @@ int main(int argc, char **argv)
 				dongle.offset_tuning = 1;}
 			if (strcmp("rtlagc", optarg) == 0 || strcmp("agc", optarg) == 0) {
 				rtlagc = 1;}
+			if (strcmp("zero", optarg) == 0) {
+				demod.squelch_zero = 1;}
 			if (strcmp("wav",  optarg) == 0) {
 				output.wav_format = 1;}
 			break;
