@@ -208,7 +208,7 @@ void usage(void)
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-w tuner_bandwidth (default: automatic. enables offset tuning)]\n"
-		"\t[-c channel number (ex: 0)]\n"
+		"\t[-C channel number (ex: 0)]\n"
 		"\t[-a antenna (ex: 'Tuner 1 50 ohm')]\n"
 		"\t[-l squelch_level (default: 0/off)]\n"
 		"\t[-L N  prints levels every N calculations]\n"
