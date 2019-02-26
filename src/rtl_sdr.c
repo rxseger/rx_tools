@@ -93,8 +93,8 @@ int main(int argc, char **argv)
 	char *filename = NULL;
 	int r, opt;
 	char *gain_str = NULL;
-  int channel = 0;
-  char *antenna_str = NULL;
+	int channel = 0;
+	char *antenna_str = NULL;
 	int ppm_error = 0;
 	int sync_mode = 0;
 	int direct_sampling = 0;
@@ -230,6 +230,7 @@ int main(int argc, char **argv)
 		verbose_gain_str_set(dev, gain_str);
 	}
 
+	/* Set the antenna */
 	if (NULL != antenna_str){
 		r = verbose_antenna_str_set(dev, channel, antenna_str);
 		if(r != 0){

@@ -128,6 +128,8 @@ void usage(void)
 		"\t (buggy if a full sweep takes longer than the interval)\n"
 		"\t[-1 enables single-shot mode (default: off)]\n"
 		"\t[-e exit_timer (default: off/0)]\n"
+		"\t[-C channel number (ex: 0)]\n"
+		"\t[-a antenna (ex: 'Tuner 1 50 ohm')]\n"
 		//"\t[-s avg/iir smoothing (default: avg)]\n"
 		//"\t[-t threads (default: 1)]\n"
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
@@ -839,10 +841,18 @@ int main(int argc, char **argv)
 	char t_str[50];
 	struct tm cal_time = {0};
 	double (*window_fn)(int, int) = rectangle;
+	int channel = 0;	
+	char *antenna_str = NULL;
 	freq_optarg = "";
 
-	while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
+	while ((opt = getopt(argc, argv, "a:C:f:i:s:t:d:g:p:e:w:c:F:1PD:OS:R:h")) != -1) {
 		switch (opt) {
+		case 'a':
+			antenna_str = optarg;
+			break;
+		case 'C':
+			channel = (int)atoi(optarg);
+			break;
 		case 'f': // lower:upper:bin_size
 			freq_optarg = strdup(optarg);
 			f_set = 1;
@@ -953,6 +963,15 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dev_query);
 		exit(1);
 	}
+
+	/* Set the antenna */
+	if (NULL != antenna_str) {
+		r = verbose_antenna_str_set(dev, channel, antenna_str);
+		if(r != 0){
+			fprintf(stderr, "Failed to set antenna");
+		}
+	}
+
 	verbose_setup_stream(dev, &stream, 0, SOAPY_SDR_CS16);
 
 	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
