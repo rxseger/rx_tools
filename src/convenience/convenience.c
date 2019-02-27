@@ -335,7 +335,7 @@ int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t channel)
 	int r;
 	if (ppm_error == 0) {
 		return 0;}
-	r = (int)SoapySDRDevice_setFrequencyComponent(dev, SOAPY_SDR_RX, 0, "CORR", (double)ppm_error, NULL);
+	r = SoapySDRDevice_setFrequencyCorrection(dev, SOAPY_SDR_RX, channel, (double)ppm_error);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set ppm error.\n");
 	} else {
