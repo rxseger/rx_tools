@@ -217,17 +217,17 @@ int main(int argc, char **argv)
 	}
 
 	/* Set the sample rate */
-	verbose_set_sample_rate(dev, samp_rate);
+	verbose_set_sample_rate(dev, samp_rate, channel);
 
 	/* Set the frequency */
-	verbose_set_frequency(dev, frequency);
+	verbose_set_frequency(dev, frequency, channel);
 
 	if (NULL == gain_str) {
 		 /* Enable automatic gain */
-		verbose_auto_gain(dev);
+		verbose_auto_gain(dev, channel);
 	} else {
 		/* Enable manual gain */
-		verbose_gain_str_set(dev, gain_str);
+		verbose_gain_str_set(dev, gain_str, channel);
 	}
 
 	/* Set the antenna */
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	verbose_ppm_set(dev, ppm_error);
+	verbose_ppm_set(dev, ppm_error, channel);
 
 	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
 		file = stdout;

@@ -107,6 +107,7 @@ struct dongle_state
 	pthread_t thread;
 	SoapySDRDevice *dev;
 	SoapySDRStream *stream;
+	size_t channel;
 	char	*dev_query;
 	uint32_t freq;
 	uint32_t rate;
@@ -1022,7 +1023,7 @@ static void *controller_thread_fn(void *arg)
 		if (!dongle.offset_tuning)
 			fprintf(stderr, "  frequency is away from parametrized one, to avoid negative impact from dc\n");
 	}
-	verbose_set_frequency(dongle.dev, dongle.freq);
+	verbose_set_frequency(dongle.dev, dongle.freq, dongle.channel);
 	fprintf(stderr, "Oversampling input by: %ix.\n", demod.downsample);
 	fprintf(stderr, "Oversampling output by: %ix.\n", demod.post_downsample);
 	fprintf(stderr, "Buffer size: %0.2fms\n",
@@ -1031,7 +1032,7 @@ static void *controller_thread_fn(void *arg)
 	/* Set the sample rate */
 	if (verbosity)
 		fprintf(stderr, "verbose_set_sample_rate(%.0f Hz)\n", (double)dongle.rate);
-	verbose_set_sample_rate(dongle.dev, dongle.rate);
+	verbose_set_sample_rate(dongle.dev, dongle.rate, dongle.channel);
 	fprintf(stderr, "Output at %u Hz.\n", demod.rate_in/demod.post_downsample);
 
 	SoapySDRKwargs args = {0};
@@ -1077,6 +1078,7 @@ void dongle_init(struct dongle_state *s)
 	s->offset_tuning = 0;
 	s->demod_target = &demod;
 	s->bandwidth = 0;
+	s->channel = 0;
 }
 
 void demod_init(struct demod_state *s)
@@ -1212,7 +1214,6 @@ int main(int argc, char **argv)
 	int r, opt;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
-	int channel = 0;
 	char *antenna_str = NULL;
 	dongle_init(&dongle);
 	demod_init(&demod);
@@ -1226,7 +1227,7 @@ int main(int argc, char **argv)
 			antenna_str = optarg;
 			break;
 		case 'C':
-			channel = (int)atoi(optarg);
+			dongle.channel = (int)atoi(optarg);
 			break;
 		case 'd':
 			dongle.dev_query = optarg;
@@ -1387,7 +1388,7 @@ int main(int argc, char **argv)
 
 	tmp_stdout = suppress_stdout_start();
 	verbose_device_search(dongle.dev_query, &dongle.dev);
-	verbose_setup_stream(dongle.dev, &dongle.stream, 0, SOAPY_SDR_CS16);
+	verbose_setup_stream(dongle.dev, &dongle.stream, dongle.channel, SOAPY_SDR_CS16);
 
 	if (!dongle.dev) {
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dongle.dev_query);
@@ -1415,7 +1416,7 @@ int main(int argc, char **argv)
 
 	/* Set the antenna */
 	if (NULL != antenna_str) {
-		r = verbose_antenna_str_set(dongle.dev, channel, antenna_str);
+		r = verbose_antenna_str_set(dongle.dev, dongle.channel, antenna_str);
 		if (r != 0) {
 			fprintf(stderr, "Failed to set antenna");
 		}
@@ -1423,23 +1424,23 @@ int main(int argc, char **argv)
 
 	/* Set the tuner gain */
 	if (dongle.gain_str == NULL) {
-		verbose_auto_gain(dongle.dev);
+		verbose_auto_gain(dongle.dev, dongle.channel);
 	} else {
-		verbose_gain_str_set(dongle.dev, dongle.gain_str);
+		verbose_gain_str_set(dongle.dev, dongle.gain_str, dongle.channel);
 	}
 
-	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, 0, rtlagc);
+	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, dongle.channel, rtlagc);
 
-	verbose_ppm_set(dongle.dev, dongle.ppm_error);
+	if (custom_ppm) verbose_ppm_set(dongle.dev, dongle.ppm_error, dongle.channel);
 
- 	verbose_set_bandwidth(dongle.dev, dongle.bandwidth);
+ 	verbose_set_bandwidth(dongle.dev, dongle.bandwidth, dongle.channel);
 
 	if (verbosity && dongle.bandwidth)
 	{
 		fprintf(stderr, "Supported bandwidth values in kHz:\n");
 		size_t bw_count = 0;
 		// TODO: well, this is deprecated by getBandwidthRange? SoapySDRRange
-		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, 0, &bw_count);
+		double *bandwidths = SoapySDRDevice_listBandwidths(dongle.dev, SOAPY_SDR_RX, dongle.channel, &bw_count);
 		for (size_t k = 0; k < bw_count; ++k) {
 			fprintf(stderr, "%.1f ", bandwidths[k]);
 		}

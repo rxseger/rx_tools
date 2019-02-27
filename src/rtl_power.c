@@ -545,12 +545,12 @@ void frequency_range(char *arg, double crop)
 static int16_t dump[BUFFER_DUMP * sizeof(int16_t) * 2] = {0};
 static int tuner_sleep_usec = 5000;
 static int tuner_retry_max = 3;
-void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq)
+void retune(SoapySDRDevice *d, SoapySDRStream *s, int64_t freq, size_t channel)
 {
 	int r, i;
 
 	SoapySDRKwargs args = {0};
-	r = SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, 0, (double)freq, &args);
+	r = SoapySDRDevice_setFrequency(d, SOAPY_SDR_RX, channel, (double)freq, &args);
 	if (r != 0) {
 		fprintf(stderr, "Error: failed to set frequency %lli Hz, r=%d\n", (long long)freq, r);
 		return;
@@ -667,7 +667,7 @@ int64_t real_conj(int16_t real, int16_t imag)
 	return ((int64_t)real*(int64_t)real + (int64_t)imag*(int64_t)imag);
 }
 
-void scanner(void)
+void scanner(size_t channel)
 {
 	int i, j, j2, offset, bin_e, bin_len, buf_len, ds, ds_p;
 	int32_t w;
@@ -680,10 +680,10 @@ void scanner(void)
 		if (do_exit >= 2)
 			{return;}
 		ts = &tunes[i];
-		f = (int64_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, 0);
+		f = (int64_t)SoapySDRDevice_getFrequency(dev, SOAPY_SDR_RX, channel);
 
 		if (f != ts->freq) {
-			retune(dev, stream, ts->freq);}
+			retune(dev, stream, ts->freq, channel);}
 
 		void *buffs[] = {ts->buf16};
 		int flags = 0;
@@ -972,7 +972,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	verbose_setup_stream(dev, &stream, 0, SOAPY_SDR_CS16);
+	verbose_setup_stream(dev, &stream, channel, SOAPY_SDR_CS16);
 
 	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
 
@@ -999,12 +999,12 @@ int main(int argc, char **argv)
 
 	/* Set the tuner gain */
 	if (gain_str == NULL) {
-		verbose_auto_gain(dev);
+		verbose_auto_gain(dev, channel);
 	} else {
-		verbose_gain_str_set(dev, gain_str);
+		verbose_gain_str_set(dev, gain_str, channel);
 	}
 
-	verbose_ppm_set(dev, ppm_error);
+	verbose_ppm_set(dev, ppm_error, channel);
 
 	if (strcmp(filename, "-") == 0) { /* Write log to stdout */
 		file = stdout;
@@ -1024,7 +1024,7 @@ int main(int argc, char **argv)
 	verbose_reset_buffer(dev);
 
 	/* actually do stuff */
-	SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, 0, (double)tunes[0].rate);
+	SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, channel, (double)tunes[0].rate);
 	sine_table(tunes[0].bin_e);
 	next_tick = time(NULL) + interval;
 	if (exit_time) {
@@ -1037,7 +1037,7 @@ int main(int argc, char **argv)
 	}
 	tzset();
 	while (!do_exit) {
-		scanner();
+		scanner(channel);
 		time_now = time(NULL);
 		if (time_now < next_tick) {
 			continue;}

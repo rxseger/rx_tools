@@ -134,12 +134,12 @@ double atofp(char *s)
 	return atof(s);
 }
 
-int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
+int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t channel)
 {
 	int r;
 
 	SoapySDRKwargs args = {0};
-	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, 0, (double)frequency, &args);
+	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, channel, (double)frequency, &args);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set center freq.\n");
 	} else {
@@ -148,10 +148,10 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency)
 	return r;
 }
 
-int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate)
+int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t channel)
 {
 	int r;
-	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, 0, (double)samp_rate);
+	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, channel, (double)samp_rate);
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
 	} else {
@@ -160,15 +160,15 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate)
 	return r;
 }
 
-int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth)
+int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth, size_t channel)
 {
 	int r;
-	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, 0, (double)bandwidth);
+	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, channel, (double)bandwidth);
 	uint32_t applied_bw = 0;
 	if (r != 0) {
 		fprintf(stderr, "WARNING: Failed to set bandwidth.\n");
 	} else if (bandwidth > 0) {
-		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, 0);
+		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, channel);
 		if (applied_bw)
 			fprintf(stderr, "Bandwidth parameter %u Hz resulted in %u Hz.\n", bandwidth, applied_bw);
 		else
@@ -230,7 +230,7 @@ int verbose_offset_tuning(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_auto_gain(SoapySDRDevice *dev)
+int verbose_auto_gain(SoapySDRDevice *dev, size_t channel)
 {
 	int r;
 	r = 0;
@@ -249,7 +249,7 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 		// For now, set 40.0 dB, high
 		// Note: 26.5 dB in https://github.com/librtlsdr/librtlsdr/blob/master/src/tuner_r82xx.c#L1067 - but it's not the same
 		// TODO: remove or change after auto-gain? https://github.com/pothosware/SoapyRTLSDR/issues/21 rtlsdr_set_tuner_gain_mode(dev, 0);
-		r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, 40.);
+		r = (int)SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, channel, 40.);
 		if (r != 0) {
 			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
 		} else {
@@ -260,15 +260,15 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 		// even though it logs HACKRF_ERROR_INVALID_PARAM? https://github.com/rxseger/rx_tools/issues/9
 		// Total gain is distributed amongst all gains, 116 = 37,65,1; the LNA is OK (<40) but VGA is out of range (65 > 62)
 		// TODO: generic means to set all gains, of any SDR? string parsing LNA=#,VGA=#,AMP=#?
-		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "LNA", 40.); // max 40
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, channel, "LNA", 40.); // max 40
 		if (r != 0) {
 			fprintf(stderr, "WARNING: Failed to set LNA tuner gain.\n");
 		}
-		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "VGA", 20.); // max 65
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, channel, "VGA", 20.); // max 65
 		if (r != 0) {
 			fprintf(stderr, "WARNING: Failed to set VGA tuner gain.\n");
 		}
-		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, "AMP", 0.); // on or off
+		r = (int)SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, channel, "AMP", 0.); // on or off
 		if (r != 0) {
 			fprintf(stderr, "WARNING: Failed to set AMP tuner gain.\n");
 		}
@@ -279,7 +279,7 @@ int verbose_auto_gain(SoapySDRDevice *dev)
 	return r;
 }
 
-int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
+int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 {
 	SoapySDRKwargs args = {0};
 	size_t i;
@@ -302,7 +302,7 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 			double value = atof(args.vals[i]);
 
 			fprintf(stderr, "Setting gain element %s: %f dB\n", name, value);
-			r = SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, 0, name, value);
+			r = SoapySDRDevice_setGainElement(dev, SOAPY_SDR_RX, channel, name, value);
 			if (r != 0) {
 				fprintf(stderr, "WARNING: setGainElement(%s, %f) failed: %d\n", name, value, r);
 			}
@@ -310,7 +310,7 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str)
 	} else {
 		// Set overall gain and let SoapySDR distribute amongst components
 		double value = atof(gain_str);
-		r = SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, 0, value);
+		r = SoapySDRDevice_setGain(dev, SOAPY_SDR_RX, channel, value);
 		if (r != 0) {
 			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
 		} else {
@@ -330,7 +330,7 @@ int verbose_antenna_str_set(SoapySDRDevice *dev, int channel, char *antenna_str)
 	return r;
 }
 
-int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error)
+int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t channel)
 {
 	int r;
 	if (ppm_error == 0) {
