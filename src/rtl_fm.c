@@ -208,6 +208,8 @@ void usage(void)
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-w tuner_bandwidth (default: automatic. enables offset tuning)]\n"
+		"\t[-C channel number (ex: 0)]\n"
+		"\t[-a antenna (ex: 'Tuner 1 50 ohm')]\n"
 		"\t[-l squelch_level (default: 0/off)]\n"
 		"\t[-L N  prints levels every N calculations]\n"
 		"\t	output are comma separated values (csv):\n"
@@ -1207,17 +1209,25 @@ int main(int argc, char **argv)
 	struct sigaction sigact;
 #endif
 	int custom_ppm = 0;
-	int opt;
+	int r, opt;
 	int timeConstant = 75; /* default: U.S. 75 uS */
 	int rtlagc = 0;
+	int channel = 0;
+	char *antenna_str = NULL;
 	dongle_init(&dongle);
 	demod_init(&demod);
 	output_init(&output);
 	controller_init(&controller);
 	dongle.dev_query = "";
 
-	while ((opt = getopt(argc, argv, "d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
+	while ((opt = getopt(argc, argv, "a:C:d:f:g:s:b:l:L:o:t:r:p:E:q:F:A:M:c:h:w:v")) != -1) {
 		switch (opt) {
+		case 'a':
+			antenna_str = optarg;
+			break;
+		case 'C':
+			channel = (int)atoi(optarg);
+			break;
 		case 'd':
 			dongle.dev_query = optarg;
 			break;
@@ -1401,6 +1411,14 @@ int main(int argc, char **argv)
 		demod.deemph_a = (int)round(1.0/((1.0-exp(-1.0/(demod.rate_out * tc)))));
 		if (verbosity)
 			fprintf(stderr, "using wbfm deemphasis filter with time constant %d us\n", timeConstant );
+	}
+
+	/* Set the antenna */
+	if (NULL != antenna_str) {
+		r = verbose_antenna_str_set(dongle.dev, channel, antenna_str);
+		if (r != 0) {
+			fprintf(stderr, "Failed to set antenna");
+		}
 	}
 
 	/* Set the tuner gain */
