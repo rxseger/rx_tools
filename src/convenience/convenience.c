@@ -141,7 +141,7 @@ int verbose_set_frequency(SoapySDRDevice *dev, uint32_t frequency, size_t channe
 	SoapySDRKwargs args = {0};
 	r = (int)SoapySDRDevice_setFrequency(dev, SOAPY_SDR_RX, channel, (double)frequency, &args);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set center freq.\n");
+		fprintf(stderr, "WARNING: Failed to set center freq: %s\n", SoapySDRDevice_lastError());
 	} else {
 		fprintf(stderr, "Tuned to %u Hz.\n", frequency);
 	}
@@ -153,7 +153,7 @@ int verbose_set_sample_rate(SoapySDRDevice *dev, uint32_t samp_rate, size_t chan
 	int r;
 	r = (int)SoapySDRDevice_setSampleRate(dev, SOAPY_SDR_RX, channel, (double)samp_rate);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+		fprintf(stderr, "WARNING: Failed to set sample rate: %s\n", SoapySDRDevice_lastError());
 	} else {
 		fprintf(stderr, "Sampling at %u S/s.\n", samp_rate);
 	}
@@ -166,7 +166,7 @@ int verbose_set_bandwidth(SoapySDRDevice *dev, uint32_t bandwidth, size_t channe
 	r = (int)SoapySDRDevice_setBandwidth(dev, SOAPY_SDR_RX, channel, (double)bandwidth);
 	uint32_t applied_bw = 0;
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set bandwidth.\n");
+		fprintf(stderr, "WARNING: Failed to set bandwidth: %s\n", SoapySDRDevice_lastError());
 	} else if (bandwidth > 0) {
 		applied_bw = (uint32_t)SoapySDRDevice_getBandwidth(dev, SOAPY_SDR_RX, channel);
 		if (applied_bw)
@@ -195,7 +195,7 @@ int verbose_direct_sampling(SoapySDRDevice *dev, int on)
 	set_value = SoapySDRDevice_readSetting(dev, "direct_samp");
 
 	if (set_value == NULL) {
-		fprintf(stderr, "WARNING: Failed to set direct sampling mode.\n");
+		fprintf(stderr, "WARNING: Failed to set direct sampling mode: %s\n", SoapySDRDevice_lastError());
 		return r;
 	}
 	if (atoi(set_value) == 0) {
@@ -206,6 +206,7 @@ int verbose_direct_sampling(SoapySDRDevice *dev, int on)
 		fprintf(stderr, "Enabled direct sampling mode, input 2/Q.\n");}
 	if (on == 3) {
 		fprintf(stderr, "Enabled no-mod direct sampling mode.\n");}
+	free(set_value);
 	return r;
 }
 
@@ -227,6 +228,7 @@ int verbose_offset_tuning(SoapySDRDevice *dev)
 	} else {
 		fprintf(stderr, "Offset tuning mode enabled.\n");
 	}
+	free(set_value);
 	return r;
 }
 
@@ -275,13 +277,12 @@ int verbose_auto_gain(SoapySDRDevice *dev, size_t channel)
 
 	}
 	// otherwise leave unset, hopefully the driver has good defaults
-
+	free(driver);
 	return r;
 }
 
 int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 {
-	SoapySDRKwargs args = {0};
 	size_t i;
 	int r;
 
@@ -295,10 +296,10 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 
 	if (strchr(gain_str, '=')) {
 		// Set each gain individually (more control)
-		parse_kwargs(gain_str, &args);
+		SoapySDRKwargs args = SoapySDRKwargs_fromString(gain_str);
 
 		for (i = 0; i < args.size; ++i) {
-			char *name = args.keys[i];
+			const char *name = args.keys[i];
 			double value = atof(args.vals[i]);
 
 			fprintf(stderr, "Setting gain element %s: %f dB\n", name, value);
@@ -307,6 +308,8 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 				fprintf(stderr, "WARNING: setGainElement(%s, %f) failed: %d\n", name, value, r);
 			}
 		}
+
+		SoapySDRKwargs_clear(&args);
 	} else {
 		// Set overall gain and let SoapySDR distribute amongst components
 		double value = atof(gain_str);
@@ -318,7 +321,6 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 		}
 		// TODO: read back and print each individual getGainElement()s
 	}
-
 	return r;
 }
 
@@ -337,7 +339,7 @@ int verbose_ppm_set(SoapySDRDevice *dev, int ppm_error, size_t channel)
 		return 0;}
 	r = SoapySDRDevice_setFrequencyCorrection(dev, SOAPY_SDR_RX, channel, (double)ppm_error);
 	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set ppm error.\n");
+		fprintf(stderr, "WARNING: Failed to set ppm error: %s\n", SoapySDRDevice_lastError());
 	} else {
 		fprintf(stderr, "Tuner error set to %i ppm.\n", ppm_error);
 	}
@@ -479,32 +481,6 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 		return -3;
 	}
 	return 0;
-}
-
-void parse_kwargs(char *s, SoapySDRKwargs *args)
-{
-	char *copied, *cursor, *pair, *equals;
-
-	copied = strdup(s);
-	cursor = copied;
-	while ((pair = strsep(&cursor, ",")) != NULL) {
-		char *key, *value;
-		//printf("pair = %s\n", pair);
-
-		equals = strchr(pair, '=');
-		if (equals) {
-			key = pair;
-			*equals = '\0';
-			value = equals + 1;
-		} else {
-			key = pair;
-			value = "";
-		}
-		//printf("key=|%s|, value=|%s|\n", key, value);
-		SoapySDRKwargs_set(args, key, value);
-	}
-
-	free(copied);
 }
 
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab
