@@ -41,6 +41,8 @@
 #define MINIMAL_BUF_LENGTH		512
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
+#define ISFMT(a,b) (!strcmp((a),(b)))
+
 static int do_exit = 0;
 static uint32_t samples_to_read = 0;
 static SoapySDRDevice *dev = NULL;
@@ -193,9 +195,9 @@ int main(int argc, char **argv)
 	}
 
 	// for now only input to output in same format, input CS16 to all, and CS12 to CS16
-	if (input_format != output_format
-			&& input_format != SOAPY_SDR_CS16
-			&& (input_format != SOAPY_SDR_CS12 || output_format != SOAPY_SDR_CS16)) {
+	if (!ISFMT(input_format, output_format)
+			&& !ISFMT(input_format, SOAPY_SDR_CS16)
+			&& (!ISFMT(input_format, SOAPY_SDR_CS12) || !ISFMT(output_format, SOAPY_SDR_CS16))) {
 		fprintf(stderr, "Unsupported input/output conversion: %s to %s\n", input_format, output_format);
 		exit(1);
 	}
@@ -218,11 +220,11 @@ int main(int argc, char **argv)
 	}
 
 	buffer = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
-	if (strcmp(output_format, SOAPY_SDR_CS8) == 0 || strcmp(output_format, SOAPY_SDR_CU8) == 0) {
+	if (ISFMT(output_format, SOAPY_SDR_CS8) || ISFMT(output_format, SOAPY_SDR_CU8)) {
 		buf8 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS8));
-	} else if (strcmp(output_format, SOAPY_SDR_CS16) == 0) {
+	} else if (ISFMT(output_format, SOAPY_SDR_CS16)) {
 		buf16 = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CS16));
-	} else if (strcmp(output_format, SOAPY_SDR_CF32) == 0) {
+	} else if (ISFMT(output_format, SOAPY_SDR_CF32)) {
 		fbuf = malloc(out_block_size * SoapySDR_formatToSize(SOAPY_SDR_CF32));
 	}
 	size_t input_elem_size = SoapySDR_formatToSize(input_format);
@@ -335,13 +337,13 @@ int main(int argc, char **argv)
 				do_exit = 1;
 			}
 
-			if (!strcmp(output_format, input_format)) {
+			if (ISFMT(output_format, input_format)) {
 				// The "native" format we read in, write out no conversion needed
 				if (fwrite(buffer, sizeof(uint8_t), bytes_read, file) != (size_t)bytes_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (!strcmp(input_format, SOAPY_SDR_CS12) && !strcmp(output_format, SOAPY_SDR_CS16)) {
+			} else if (ISFMT(input_format, SOAPY_SDR_CS12) && ISFMT(output_format, SOAPY_SDR_CS16)) {
 				uint8_t *src = (uint8_t *)buffer;
 				for (i = 0; i < elems_read; ++i) {
 					uint8_t b0 = *src++;
@@ -354,7 +356,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (strcmp(output_format, SOAPY_SDR_CS8) == 0) {
+			} else if (ISFMT(output_format, SOAPY_SDR_CS8)) {
 				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
 				}
@@ -362,7 +364,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (strcmp(output_format, SOAPY_SDR_CU8) == 0) {
+			} else if (ISFMT(output_format, SOAPY_SDR_CU8)) {
 				for (i = 0; i < n_read; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
 				}
@@ -370,7 +372,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "Short write, samples lost, exiting!\n");
 					break;
 				}
-			} else if (strcmp(output_format, SOAPY_SDR_CF32) == 0) {
+			} else if (ISFMT(output_format, SOAPY_SDR_CF32)) {
 				for (i = 0; i < n_read; ++i) {
 					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
 				}
