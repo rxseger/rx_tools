@@ -476,10 +476,18 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 		fprintf(stderr, "Invalid channel %d selected\n", (int)channel);
 		return -3;
 	}
+	#if SOAPY_SDR_API_VERSION < 0x00080000
 	if (SoapySDRDevice_setupStream(dev, streamOut, SOAPY_SDR_RX, format, &channel, 1, &stream_args) != 0) {
-		fprintf(stderr, "SoapySDRDevice_setupStream failed\n");
+		fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
 		return -3;
 	}
+	#else
+	*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channel, 1, &stream_args);
+	if (*streamOut == NULL) {
+		fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
+		return -3;
+	}
+	#endif
 	return 0;
 }
 
