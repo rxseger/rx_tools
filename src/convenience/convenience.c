@@ -360,6 +360,37 @@ int verbose_reset_buffer(SoapySDRDevice *dev)
 	return r;
 }
 
+int verbose_settings(SoapySDRDevice *dev, const char *sdr_settings)
+{
+	char *copied, *cursor, *pair, *equals;
+	int status = 0;
+
+	copied = strdup(sdr_settings);
+	cursor = copied;
+	while ((pair = strsep(&cursor, ",")) != NULL) {
+		char *key, *value;
+
+		equals = strchr(pair, '=');
+		if (equals) {
+			key = pair;
+			*equals = '\0';
+			value = equals + 1;
+		} else {
+			key = pair;
+			value = "";
+		}
+		fprintf(stderr, "set key=|%s|, value=|%s|\n", key, value);
+		if(SoapySDRDevice_writeSetting(dev, key, value) != 0) {
+			status = 1;
+			fprintf(stderr, "WARNING: key set failed\n");
+		}
+	}
+
+	free(copied);
+
+	return status;
+}
+
 static void show_device_info(SoapySDRDevice *dev)
 {
 	size_t len = 0, i = 0;
