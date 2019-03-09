@@ -285,8 +285,7 @@ int verbose_auto_gain(SoapySDRDevice *dev, size_t channel)
 
 int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 {
-	size_t i;
-	int r;
+	int r = 0;
 
 	/* TODO: manual gain mode
 	r = rtlsdr_set_tuner_gain_mode(dev, 1);
@@ -300,7 +299,7 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 		// Set each gain individually (more control)
 		SoapySDRKwargs args = SoapySDRKwargs_fromString(gain_str);
 
-		for (i = 0; i < args.size; ++i) {
+		for (size_t i = 0; i < args.size; ++i) {
 			const char *name = args.keys[i];
 			double value = atof(args.vals[i]);
 
@@ -362,31 +361,19 @@ int verbose_reset_buffer(SoapySDRDevice *dev)
 
 int verbose_settings(SoapySDRDevice *dev, const char *sdr_settings)
 {
-	char *copied, *cursor, *pair, *equals;
 	int status = 0;
 
-	copied = strdup(sdr_settings);
-	cursor = copied;
-	while ((pair = strsep(&cursor, ",")) != NULL) {
-		char *key, *value;
-
-		equals = strchr(pair, '=');
-		if (equals) {
-			key = pair;
-			*equals = '\0';
-			value = equals + 1;
-		} else {
-			key = pair;
-			value = "";
-		}
+	SoapySDRKwargs settings = SoapySDRKwargs_fromString(sdr_settings);
+	for (size_t i = 0; i < settings.size; ++i) {
+		const char *key = settings.keys[i];
+		const char *value = settings.vals[i];
 		fprintf(stderr, "set key=|%s|, value=|%s|\n", key, value);
 		if(SoapySDRDevice_writeSetting(dev, key, value) != 0) {
 			status = 1;
-			fprintf(stderr, "WARNING: key set failed\n");
+			fprintf(stderr, "WARNING: key set failed: %s\n", SoapySDRDevice_lastError());
 		}
 	}
-
-	free(copied);
+	SoapySDRKwargs_clear(&settings);
 
 	return status;
 }
