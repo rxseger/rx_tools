@@ -38,6 +38,7 @@
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
+#include <SoapySDR/Version.h>
 
 #ifdef _MSC_VER
 struct tm *localtime_r (const time_t *timer, struct tm *result)
