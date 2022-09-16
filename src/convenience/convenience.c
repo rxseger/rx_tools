@@ -512,4 +512,33 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 	return 0;
 }
 
+int verbose_set_properties(SoapySDRDevice *dev, uint32_t samp_rate, int frequency, char *gain_str, char *antenna_str, int ppm_error, size_t channel) {
+
+	int r = 0;
+
+	/* Set the sample rate */
+	verbose_set_sample_rate(dev, samp_rate, channel);
+
+	/* Set the frequency */
+	verbose_set_frequency(dev, frequency, channel);
+
+	if (NULL == gain_str) {
+		/* Enable automatic gain */
+		verbose_auto_gain(dev, channel);
+	} else {
+		/* Enable manual gain */
+		verbose_gain_str_set(dev, gain_str, channel);
+	}
+
+	/* Set the antenna */
+	if (NULL != antenna_str){
+		r = verbose_antenna_str_set(dev, channel, antenna_str);
+		if(r != 0){
+			fprintf(stderr, "Failed to set antenna");
+		}
+	}
+
+	verbose_ppm_set(dev, ppm_error, channel);
+}
+
 // vim: tabstop=8:softtabstop=8:shiftwidth=8:noexpandtab

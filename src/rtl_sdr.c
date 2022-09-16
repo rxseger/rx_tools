@@ -56,7 +56,7 @@ void usage(void)
 		"\t[-s samplerate (default: 2048000 Hz)]\n"
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
-		"\t[-c channel number (ex: 0)]\n"
+		"\t[-c channel number (ex: 0), set to -1 for all channels]\n"
 		"\t[-a antenna (ex: 'Tuner 1 50 ohm')]\n"
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b output_block_size (default: 16 * 16384)]\n"
@@ -261,29 +261,14 @@ int main(int argc, char **argv)
 		verbose_direct_sampling(dev, direct_sampling);
 	}
 
-	/* Set the sample rate */
-	verbose_set_sample_rate(dev, samp_rate, channel);
-
-	/* Set the frequency */
-	verbose_set_frequency(dev, frequency, channel);
-
-	if (NULL == gain_str) {
-		 /* Enable automatic gain */
-		verbose_auto_gain(dev, channel);
-	} else {
-		/* Enable manual gain */
-		verbose_gain_str_set(dev, gain_str, channel);
-	}
-
-	/* Set the antenna */
-	if (NULL != antenna_str){
-		r = verbose_antenna_str_set(dev, channel, antenna_str);
-		if(r != 0){
-			fprintf(stderr, "Failed to set antenna");
+	int num_chan = SoapySDRDevice_getNumChannels(dev, SOAPY_SDR_RX);
+	if (channel == -1) {
+		for (int i = 0; i < num_chan; i++) {
+			verbose_set_properties(dev, samp_rate, frequency, gain_str, antenna_str, ppm_error, i);
 		}
+	} else {
+		verbose_set_properties(dev, samp_rate, frequency, gain_str, antenna_str, ppm_error, channel);
 	}
-
-	verbose_ppm_set(dev, ppm_error, channel);
 
 	if(strcmp(filename, "-") == 0) { /* Write samples to stdout */
 		file = stdout;
@@ -366,7 +351,7 @@ int main(int argc, char **argv)
 				}
 			} else if (ISFMT(output_format, SOAPY_SDR_CS8)) {
 				for (i = 0; i < n_read; ++i) {
-					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
+					buf8[i] = (int16_t)( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
 				}
 				if (fwrite(buf8, sizeof(int8_t), n_read, file) != (size_t)n_read) {
 					fprintf(stderr, "Short write, samples lost, exiting!\n");

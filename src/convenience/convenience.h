@@ -211,4 +211,13 @@ int suppress_stdout_start(void);
  */
 void suppress_stdout_stop(int tmp_stdout);
 
+/*!
+ * Apply settings to device channel configuration
+ *
+ * \param dev the device handle
+ * \return 0 on success
+ */
+
+int verbose_set_properties(SoapySDRDevice *dev, uint32_t samp_rate, int frequency, char *gain_str, char *antenna_str, int ppm_error, size_t channel);
+
 #endif /*__CONVENIENCE_H*/
