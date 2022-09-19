@@ -504,9 +504,9 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 	}
 	#else
 	if (channel == -1) {
-		int channel_arr[num_channels];
+		int (*channel_arr)[num_channels];
 		for (int i = 0; i < num_channels; i++) {
-			channel_arr[i] = i;
+			*channel_arr[i] = i;
 		} 
 		*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channel_arr, num_channels, &stream_args);
 		if (*streamOut == NULL) {

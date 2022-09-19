@@ -349,40 +349,48 @@ int main(int argc, char **argv)
 				}
 			} else if (ISFMT(input_format, SOAPY_SDR_CS12) && ISFMT(output_format, SOAPY_SDR_CS16)) {
 				uint8_t *src = (uint8_t *)buffer;
-				for (i = 0; i < elems_read; ++i) {
+				for (i = 0; i < elems_read*active_chan; ++i) {
 					uint8_t b0 = *src++;
 					uint8_t b1 = *src++;
 					uint8_t b2 = *src++;
 					buf16[i * 2 + 0] = (b1 << 12) | (b0 << 4);
 					buf16[i * 2 + 1] = (b2 << 8) | (b1 & 0xf0);
 				}
-				if (fwrite(buf16, sizeof(int16_t), n_read, file[0]) != (size_t)n_read) {
-					fprintf(stderr, "Short write, samples lost, exiting!\n");
-					break;
+				for (i = 0; i < active_chan; i++) {
+					if (fwrite(buf16 + i * n_read, sizeof(uint16_t), n_read, file[i]) != (size_t)n_read) {
+						fprintf(stderr, "Short write, samples lost, exiting!\n");
+						break;
+					}
 				}
 			} else if (ISFMT(output_format, SOAPY_SDR_CS8)) {
 				for (i = 0; i < n_read*active_chan; ++i) {
 					buf8[i] = (int16_t)( (int16_t)buffer[i] / 32767.0 * 128.0 + 0.4);
 				}
-				if (fwrite(buf8, sizeof(int8_t), n_read, file[0]) != (size_t)n_read) {
-					fprintf(stderr, "Short write, samples lost, exiting!\n");
-					break;
+				for (i = 0; i < active_chan; i++) {
+					if (fwrite(buf8 + i * n_read, sizeof(uint8_t), n_read, file[i]) != (size_t)n_read) {
+						fprintf(stderr, "Short write, samples lost, exiting!\n");
+						break;
+					}
 				}
 			} else if (ISFMT(output_format, SOAPY_SDR_CU8)) {
 				for (i = 0; i < n_read*active_chan; ++i) {
 					buf8[i] = ( (int16_t)buffer[i] / 32767.0 * 128.0 + 127.4);
 				}
-				if (fwrite(buf8, sizeof(uint8_t), n_read, file[0]) != (size_t)n_read) {
-					fprintf(stderr, "Short write, samples lost, exiting!\n");
-					break;
+				for (i = 0; i < active_chan; i++) {
+					if (fwrite(buf8 + i * n_read, sizeof(uint8_t), n_read, file[i]) != (size_t)n_read) {
+						fprintf(stderr, "Short write, samples lost, exiting!\n");
+						break;
+					}
 				}
 			} else if (ISFMT(output_format, SOAPY_SDR_CF32)) {
 				for (i = 0; i < n_read*active_chan; ++i) {
 					fbuf[i] = buffer[i] * 1.0f / SHRT_MAX;
 				}
-				if (fwrite(fbuf, sizeof(float), n_read, file[0]) != (size_t)n_read) {
-					fprintf(stderr, "Short write, samples lost, exiting!\n");
-					break;
+				for (i = 0; i < active_chan; i++) {
+					if (fwrite(fbuf + i * n_read, sizeof(float), n_read, file[i]) != (size_t)n_read) {
+						fprintf(stderr, "Short write, samples lost, exiting!\n");
+						break;
+					}
 				}
 			}
 
