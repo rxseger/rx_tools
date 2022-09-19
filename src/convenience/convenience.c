@@ -503,10 +503,22 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 		return -3;
 	}
 	#else
-	*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channel, 1, &stream_args);
-	if (*streamOut == NULL) {
-		fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
-		return -3;
+	if (channel == -1) {
+		int channel_arr[num_channels];
+		for (int i = 0; i < num_channels; i++) {
+			channel_arr[i] = i;
+		} 
+		*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channel_arr, num_channels, &stream_args);
+		if (*streamOut == NULL) {
+			fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
+			return -3;
+		}
+	} else {
+		*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channel, 1, &stream_args);
+		if (*streamOut == NULL) {
+			fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
+			return -3;
+		}
 	}
 	#endif
 	return 0;
