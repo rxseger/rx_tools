@@ -272,9 +272,8 @@ int main(int argc, char **argv)
 #endif
 	} else {
 		for (size_t i = 0; i < num_channels; i++) {
-			char str[5];
-			snprintf(str, 5, "_%d", channels[i]); // integer to string
-			char* fn = strcat(filename, str);
+			char fn[PATH_MAX];
+			snprintf(fn, PATH_MAX, "%s.rx%d", filename, channels[i]);
 			outfiles[i] = fopen(fn, "wb");
 			if (!outfiles[i]) {
 				fprintf(stderr, "Failed to open %s\n", fn);
