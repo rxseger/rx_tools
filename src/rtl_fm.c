@@ -1392,7 +1392,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to open sdr device matching '%s'.\n", dongle.dev_query);
 		exit(1);
 	}
-	verbose_setup_stream(dongle.dev, &dongle.stream, dongle.channel, SOAPY_SDR_CS16);
+	verbose_setup_stream(dongle.dev, &dongle.stream, &dongle.channel, 1, SOAPY_SDR_CS16);
 
 #ifndef _WIN32
 	sigact.sa_handler = sighandler;

@@ -972,7 +972,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	verbose_setup_stream(dev, &stream, channel, SOAPY_SDR_CS16);
+	verbose_setup_stream(dev, &stream, &channel, 1, SOAPY_SDR_CS16);
 
 	SoapySDRDevice_activateStream(dev, stream, 0, 0, 0);
 

@@ -183,7 +183,7 @@ int verbose_device_search(char *s, SoapySDRDevice **devOut);
  * \param format stream format (such as SOAPY_SDR_CS16)
  * \return dev 0 if successful
  */
-int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t channel, const char *format);
+int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t *channels, size_t num_channels, const char *format);
 
 /*!
  * Apply settings to device
