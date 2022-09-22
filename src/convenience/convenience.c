@@ -499,7 +499,7 @@ int verbose_setup_stream(SoapySDRDevice *dev, SoapySDRStream **streamOut, size_t
 			return -3;
 		}
 	}
-	*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, &channels, num_channels, &stream_args);
+	*streamOut = SoapySDRDevice_setupStream(dev, SOAPY_SDR_RX, format, channels, num_channels, &stream_args);
 	if (*streamOut == NULL) {
 		fprintf(stderr, "SoapySDRDevice_setupStream failed: %s\n", SoapySDRDevice_lastError());
 		return -3;
