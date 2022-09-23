@@ -54,6 +54,7 @@ void usage(void)
 		"rx_sdr (based on rtl_sdr), an I/Q recorder for RTL2832 based DVB-T receivers\n\n"
 		"Usage:\t -f frequency_to_tune_to [Hz]\n"
 		"\t[-s samplerate (default: 2048000 Hz)]\n"
+		"\t[-w bandwidth (default: samplerate)]\n"
 		"\t[-d device key/value query (ex: 0, 1, driver=rtlsdr, driver=hackrf)]\n"
 		"\t[-g tuner gain(s) (ex: 20, 40, LNA=40,VGA=20,AMP=0)]\n"
 		"\t[-c comma-separated list of channels (ex: 0,1)]\n"
@@ -144,12 +145,13 @@ int main(int argc, char **argv)
 	char *dev_query = "";
 	uint32_t frequency = 100000000;
 	uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
+	uint32_t bandwidth = 0;
 	uint32_t buffer_size = 0;
 	char const *input_format = SOAPY_SDR_CS16;
 	char const *output_format = SOAPY_SDR_CU8;
 	char *sdr_settings = NULL;
 
-	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:t:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:t:w:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -168,6 +170,9 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			samp_rate = (uint32_t)atofs(optarg);
+			break;
+		case 'w':
+			bandwidth = (uint32_t)atofs(optarg);
 			break;
 		case 'p':
 			ppm_error = atoi(optarg);
@@ -256,8 +261,12 @@ int main(int argc, char **argv)
 		verbose_direct_sampling(dev, direct_sampling);
 	}
 
-	for (size_t idx = 0; idx < num_channels; idx++) {
-		verbose_set_properties(dev, samp_rate, frequency, gain_str, antenna_str, ppm_error, idx);
+	if (bandwidth == 0)
+		bandwidth = samp_rate;
+
+	for (size_t chan_idx = 0; chan_idx < num_channels; chan_idx++) {
+		verbose_set_properties(dev, samp_rate, frequency, gain_str, antenna_str, ppm_error, chan_idx);
+		verbose_set_bandwidth(dev, bandwidth, chan_idx);
 	}
 
 	FILE *outfiles[num_channels];
