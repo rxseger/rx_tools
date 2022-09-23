@@ -45,6 +45,7 @@
 
 static int do_exit = 0;
 static uint32_t samples_to_read = 0;
+static uint32_t samples_to_skip = 0;
 static SoapySDRDevice *dev = NULL;
 static SoapySDRStream *stream = NULL;
 
@@ -62,6 +63,7 @@ void usage(void)
 		"\t[-p ppm_error (default: 0)]\n"
 		"\t[-b buffer size (in samples, default: stream MTU)]\n"
 		"\t[-n number of samples to read (default: 0, infinite)]\n"
+		"\t[-k number of samples skip before recording (default: 0)]\n"
 		"\t[-I input format, CU8|CS8|CS12|CS16|CF32 (default: CS16)]\n"
 		"\t[-F output format, CU8|CS8|CS12|CS16|CF32 (default: CU8)]\n"
 		"\t[-S force sync output (default: async)]\n"
@@ -151,7 +153,7 @@ int main(int argc, char **argv)
 	char const *output_format = SOAPY_SDR_CU8;
 	char *sdr_settings = NULL;
 
-	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:t:w:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:f:g:c:a:s:b:n:p:D:SI:F:t:w:k:")) != -1) {
 		switch (opt) {
 		case 'd':
 			dev_query = optarg;
@@ -183,6 +185,9 @@ int main(int argc, char **argv)
 		case 'n':
 			// full I/Q pair count
 			samples_to_read = (uint32_t)atofs(optarg);
+			break;
+		case 'k':
+			samples_to_skip = (uint32_t)atofs(optarg);
 			break;
 		case 'S':
 			sync_mode = 1;
@@ -357,6 +362,14 @@ int main(int argc, char **argv)
 				// truncate to requested sample count
 				samples_read = samples_to_read;
 				do_exit = 1;
+			}
+
+			// Don't process samples until we've skipped the requested number of samples
+			if (samples_to_skip > 0) {
+				if (samples_read > samples_to_skip)
+					samples_read = samples_to_skip;
+				samples_to_skip -= samples_read;
+				continue;
 			}
 
 			// For each channel we've received, write it out to its respective file
