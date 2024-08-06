@@ -225,8 +225,6 @@ void usage(void)
 		"\t	rdc:    enable dc blocking filter on raw I/Q data at capture rate\n"
 		"\t	adc:    enable dc blocking filter on demodulated audio\n"
 		"\t	dc:     same as adc\n"
-		"\t	rtlagc: enable rtl2832's digital agc (default: off)\n"
-		"\t	agc:    same as rtlagc\n"
 		"\t	deemp:  enable de-emphasis filter\n"
 		"\t	direct: enable direct sampling (bypasses tuner, uses rtl2832 xtal)\n"
 		"\t	no-mod: enable no-mod direct sampling\n"
@@ -1213,7 +1211,6 @@ int main(int argc, char **argv)
 	int custom_ppm = 0;
 	int r, opt;
 	int timeConstant = 75; /* default: U.S. 75 uS */
-	int rtlagc = 0;
 	char *antenna_str = NULL;
 	dongle_init(&dongle);
 	demod_init(&demod);
@@ -1292,8 +1289,6 @@ int main(int argc, char **argv)
 				dongle.direct_sampling = 3;}
 			if (strcmp("offset",  optarg) == 0) {
 				dongle.offset_tuning = 1;}
-			if (strcmp("rtlagc", optarg) == 0 || strcmp("agc", optarg) == 0) {
-				rtlagc = 1;}
 			if (strcmp("zero", optarg) == 0) {
 				demod.squelch_zero = 1;}
 			if (strcmp("wav",  optarg) == 0) {
@@ -1428,8 +1423,6 @@ int main(int argc, char **argv)
 	} else {
 		verbose_gain_str_set(dongle.dev, dongle.gain_str, dongle.channel);
 	}
-
-	SoapySDRDevice_setGainMode(dongle.dev, SOAPY_SDR_RX, dongle.channel, rtlagc);
 
 	if (custom_ppm) verbose_ppm_set(dongle.dev, dongle.ppm_error, dongle.channel);
 

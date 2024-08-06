@@ -239,14 +239,15 @@ int verbose_auto_gain(SoapySDRDevice *dev, size_t channel)
 {
 	int r;
 	r = 0;
-	/* TODO: not bridged, https://github.com/pothosware/SoapyRTLSDR/search?utf8=✓&q=rtlsdr_set_tuner_gain_mode
-	r = rtlsdr_set_tuner_gain_mode(dev, 0);
-	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
-	} else {
+	if (SoapySDRDevice_hasGainMode(dev, SOAPY_SDR_RX, channel)) {
+		r = SoapySDRDevice_setGainMode(dev, SOAPY_SDR_RX, channel, /*automatic*/ true);
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to enable auto gain: %s\n", SoapySDRDevice_lastError());
+			return r;
+		}
 		fprintf(stderr, "Tuner gain set to automatic.\n");
+		return 0;
 	}
-	*/
 
 	// Per-driver hacks TODO: clean this up
 	char *driver = SoapySDRDevice_getDriverKey(dev);
@@ -288,13 +289,13 @@ int verbose_gain_str_set(SoapySDRDevice *dev, char *gain_str, size_t channel)
 {
 	int r = 0;
 
-	/* TODO: manual gain mode
-	r = rtlsdr_set_tuner_gain_mode(dev, 1);
-	if (r < 0) {
-		fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
-		return r;
+	if (SoapySDRDevice_hasGainMode(dev, SOAPY_SDR_RX, channel)) {
+		r = SoapySDRDevice_setGainMode(dev, SOAPY_SDR_RX, channel, /*automatic*/ false);
+		if (r != 0) {
+			fprintf(stderr, "WARNING: Failed to enable manual gain: %s\n", SoapySDRDevice_lastError());
+			return r;
+		}
 	}
-	*/
 
 	if (strchr(gain_str, '=')) {
 		// Set each gain individually (more control)
