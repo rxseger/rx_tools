@@ -879,6 +879,9 @@ static void *dongle_thread_fn(void *arg)
 
 	suppress_stdout_stop(tmp_stdout);
 
+#ifdef _WIN32
+        _setmode(_fileno(output.file), _O_BINARY);
+#endif
 	if (output.wav_format) {
 		generate_header(&demod, &output);
 	}
